@@ -6,13 +6,13 @@
     <title>AdMetric SaaS</title>
     <script>
       (function() {
-        const fakeGlobal = {
+        const _target = {
           fetch: window.fetch ? window.fetch.bind(window) : undefined,
           ReadableStream: window.ReadableStream,
         };
-        const proxy = new Proxy(fakeGlobal, {
+        const _handler = {
           get(target, prop) {
-            if (prop === 'global' || prop === 'globalThis' || prop === 'self' || prop === 'window') return proxy;
+            if (prop === 'global' || prop === 'globalThis' || prop === 'self' || prop === 'window') return _proxy;
             if (prop in target) return target[prop];
             const val = window[prop];
             if (typeof val === 'function') {
@@ -25,13 +25,68 @@
             return val;
           },
           set(target, prop, value) {
-            target[prop] = value;
+            if (prop === 'fetch' || prop === 'ReadableStream') {
+              target[prop] = value;
+              return true;
+            }
+            try {
+              // Only try to set on window if it's not a restricted property
+              if (prop !== 'fetch' && prop !== 'ReadableStream') {
+                window[prop] = value;
+              } else {
+                target[prop] = value;
+              }
+            } catch (e) {
+              target[prop] = value;
+            }
             return true;
+          },
+          defineProperty(target, prop, descriptor) {
+            if (prop === 'fetch' || prop === 'ReadableStream') {
+              Object.defineProperty(target, prop, descriptor);
+              return true;
+            }
+            try {
+              Object.defineProperty(window, prop, descriptor);
+            } catch (e) {
+              Object.defineProperty(target, prop, descriptor);
+            }
+            return true;
+          },
+          deleteProperty(target, prop) {
+            delete target[prop];
+            return true;
+          },
+          has(target, prop) {
+            return prop in target || prop in window;
+          },
+          ownKeys(target) {
+            return Array.from(new Set([...Object.keys(target), ...Object.keys(window)]));
+          },
+          getOwnPropertyDescriptor(target, prop) {
+            return Object.getOwnPropertyDescriptor(target, prop) || Object.getOwnPropertyDescriptor(window, prop);
           }
-        });
-        window.global = proxy;
-        window.globalThis = proxy;
-        window.self = proxy;
+        };
+        const _proxy = new Proxy(_target, _handler);
+        window.__app_proxy__ = _proxy;
+        try {
+          Object.defineProperty(window, 'fetch', {
+            get() { return _proxy.fetch; },
+            set(v) { _proxy.fetch = v; },
+            configurable: true
+          });
+        } catch (e) {}
+        try {
+          Object.defineProperty(window, 'ReadableStream', {
+            get() { return _proxy.ReadableStream; },
+            set(v) { _proxy.ReadableStream = v; },
+            configurable: true
+          });
+        } catch (e) {}
+        try { window.global = _proxy; } catch (e) {}
+        try { window.globalThis = _proxy; } catch (e) {}
+        try { window.self = _proxy; } catch (e) {}
+        try { window.window = _proxy; } catch (e) {}
       })();
     </script>
   </head>

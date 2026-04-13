@@ -9,10 +9,10 @@ export default defineConfig(({mode}) => {
     plugins: [react(), tailwindcss()],
     define: {
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-      'global': 'window.global',
-      'globalThis': 'window.global',
-      'self': 'window.global',
-      'window': 'window.global',
+      'global': 'window.__app_proxy__',
+      'globalThis': 'window.__app_proxy__',
+      'self': 'window.__app_proxy__',
+      'window': 'window.__app_proxy__',
     },
     resolve: {
       alias: {

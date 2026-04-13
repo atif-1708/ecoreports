@@ -85,7 +85,13 @@ export default function App() {
       if (error) throw error;
     } catch (error: any) {
       console.error('Login failed:', error);
-      setAuthError(error.message || 'Login failed. Please check your credentials.');
+      let message = error.message || 'Login failed. Please check your credentials.';
+      if (message.includes('rate limit')) {
+        message = 'Too many login attempts. Please wait a few minutes and try again.';
+      } else if (message.includes('Email not confirmed')) {
+        message = 'Your email is not confirmed. Please check your inbox for a confirmation link or disable "Confirm Email" in your Supabase Auth settings.';
+      }
+      setAuthError(message);
     } finally {
       setIsAuthLoading(false);
     }
@@ -127,7 +133,13 @@ export default function App() {
       }
     } catch (error: any) {
       console.error('Sign up failed:', error);
-      setAuthError(error.message || 'Sign up failed. Please try again.');
+      let message = error.message || 'Sign up failed. Please try again.';
+      if (message.includes('rate limit')) {
+        message = 'Too many sign up attempts. Please wait a few minutes and try again.';
+      } else if (message.includes('Email not confirmed')) {
+        message = 'Account created! Please check your email to confirm your account before logging in.';
+      }
+      setAuthError(message);
     } finally {
       setIsAuthLoading(false);
     }
