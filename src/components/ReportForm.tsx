@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { db } from '../lib/firebase';
-import { collection, addDoc, getDocs, query, where } from 'firebase/firestore';
+import { supabase } from '../lib/supabase';
 import { UserProfile, Store } from '../types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { Button } from './ui/button';
@@ -35,13 +34,18 @@ export default function ReportForm({ user }: ReportFormProps) {
 
   useEffect(() => {
     const fetchStores = async () => {
-      const storesQuery = user.role === 'admin' 
-        ? collection(db, 'stores') 
-        : query(collection(db, 'stores'), where('id', '==', user.storeId));
+      let storesQuery = supabase.from('stores').select('*');
+      if (user.role !== 'admin') {
+        storesQuery = storesQuery.eq('id', user.storeId);
+      }
       
-      const storesSnap = await getDocs(storesQuery);
-      const storesData = storesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Store));
-      setStores(storesData);
+      const { data: storesData, error } = await storesQuery;
+      if (error) {
+        console.error('Error fetching stores:', error);
+        return;
+      }
+      
+      setStores(storesData as Store[]);
       if (!formData.storeId && storesData.length > 0) {
         setFormData(prev => ({ ...prev, storeId: storesData[0].id }));
       }
@@ -66,18 +70,22 @@ export default function ReportForm({ user }: ReportFormProps) {
         performanceScore = (confirmationRate * 0.6) + (Math.max(0, 100 - cancellationRate) * 0.4);
       }
 
-      await addDoc(collection(db, 'reports'), {
-        ...formData,
-        campaignDate: formData.campaignDate.toISOString().split('T')[0],
-        employeeId: user.uid,
-        employeeName: user.name,
-        totalSpend,
-        netOrders,
-        cancellationRate,
-        confirmationRate,
-        performanceScore,
-        createdAt: new Date().toISOString(),
-      });
+      const { error } = await supabase
+        .from('reports')
+        .insert([{
+          ...formData,
+          campaignDate: formData.campaignDate.toISOString().split('T')[0],
+          employeeId: user.uid,
+          employeeName: user.name,
+          totalSpend,
+          netOrders,
+          cancellationRate,
+          confirmationRate,
+          performanceScore,
+          createdAt: new Date().toISOString(),
+        }]);
+
+      if (error) throw error;
 
       setSuccess(true);
       setFormData({

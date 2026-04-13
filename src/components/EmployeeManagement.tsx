@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { db } from '../lib/firebase';
-import { collection, getDocs, query, where, updateDoc, doc, orderBy } from 'firebase/firestore';
+import { supabase } from '../lib/supabase';
 import { UserProfile, Store, UserRole } from '../types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { Button } from './ui/button';
@@ -25,24 +24,28 @@ export default function EmployeeManagement({ user }: EmployeeManagementProps) {
     setLoading(true);
     try {
       // Fetch stores
-      const storesQuery = user.role === 'admin' 
-        ? collection(db, 'stores') 
-        : query(collection(db, 'stores'), where('id', '==', user.storeId));
+      let storesQuery = supabase.from('stores').select('*');
+      if (user.role !== 'admin') {
+        storesQuery = storesQuery.eq('id', user.storeId);
+      }
       
-      const storesSnap = await getDocs(storesQuery);
-      const storesData = storesSnap.docs.map(doc => ({ id: doc.id, ...(doc.data() as object) } as Store));
-      setStores(storesData);
+      const { data: storesData, error: storesError } = await storesQuery;
+      if (storesError) throw storesError;
+      setStores(storesData as Store[]);
 
       // Fetch employees
-      let employeesQuery;
-      if (user.role === 'admin') {
-        employeesQuery = query(collection(db, 'users'), orderBy('createdAt', 'desc'));
-      } else {
-        employeesQuery = query(collection(db, 'users'), where('storeId', '==', user.storeId));
+      let employeesQuery = supabase
+        .from('profiles')
+        .select('*')
+        .order('createdAt', { ascending: false });
+
+      if (user.role !== 'admin') {
+        employeesQuery = employeesQuery.eq('storeId', user.storeId);
       }
 
-      const employeesSnap = await getDocs(employeesQuery);
-      setEmployees(employeesSnap.docs.map(doc => ({ uid: doc.id, ...(doc.data() as object) } as UserProfile)));
+      const { data: employeesData, error: employeesError } = await employeesQuery;
+      if (employeesError) throw employeesError;
+      setEmployees(employeesData as UserProfile[]);
     } catch (error) {
       console.error('Error fetching employee data:', error);
     } finally {
@@ -52,7 +55,12 @@ export default function EmployeeManagement({ user }: EmployeeManagementProps) {
 
   const handleUpdateRole = async (uid: string, role: UserRole) => {
     try {
-      await updateDoc(doc(db, 'users', uid), { role });
+      const { error } = await supabase
+        .from('profiles')
+        .update({ role })
+        .eq('uid', uid);
+      
+      if (error) throw error;
       fetchData();
     } catch (error) {
       console.error('Error updating role:', error);
@@ -61,7 +69,12 @@ export default function EmployeeManagement({ user }: EmployeeManagementProps) {
 
   const handleUpdateStore = async (uid: string, storeId: string) => {
     try {
-      await updateDoc(doc(db, 'users', uid), { storeId });
+      const { error } = await supabase
+        .from('profiles')
+        .update({ storeId })
+        .eq('uid', uid);
+      
+      if (error) throw error;
       fetchData();
     } catch (error) {
       console.error('Error updating store:', error);

@@ -10,8 +10,9 @@
           fetch: window.fetch ? window.fetch.bind(window) : undefined,
           ReadableStream: window.ReadableStream,
         };
-        window.global = new Proxy(fakeGlobal, {
+        const proxy = new Proxy(fakeGlobal, {
           get(target, prop) {
+            if (prop === 'global' || prop === 'globalThis' || prop === 'self' || prop === 'window') return proxy;
             if (prop in target) return target[prop];
             const val = window[prop];
             if (typeof val === 'function') {
@@ -28,6 +29,9 @@
             return true;
           }
         });
+        window.global = proxy;
+        window.globalThis = proxy;
+        window.self = proxy;
       })();
     </script>
   </head>

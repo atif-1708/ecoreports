@@ -4,9 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { auth, db } from './lib/firebase';
-import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { supabase } from './lib/supabase';
 import { UserProfile } from './types';
 import Dashboard from './components/Dashboard';
 import StoreManagement from './components/StoreManagement';
@@ -31,30 +29,48 @@ export default function App() {
   const [isAuthLoading, setIsAuthLoading] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-        if (userDoc.exists()) {
-          setUser(userDoc.data() as UserProfile);
+    const fetchProfile = async (userId: string) => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('uid', userId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return null;
+      }
+      return data as UserProfile;
+    };
+
+    const setupAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user) {
+        const profile = await fetchProfile(session.user.id);
+        if (profile) {
+          setUser(profile);
         } else {
-          // Create default profile for new user
-          const newProfile: UserProfile = {
-            uid: firebaseUser.uid,
-            email: firebaseUser.email || '',
-            name: name || firebaseUser.displayName || 'New User',
-            role: (firebaseUser.email === 'atifnazir1708@gmail.com' || firebaseUser.email === 'admin@admetric.com') ? 'admin' : 'employee',
-            createdAt: new Date().toISOString(),
-          };
-          await setDoc(doc(db, 'users', firebaseUser.uid), newProfile);
-          setUser(newProfile);
+          // If profile doesn't exist, we might need to create it or handle it
+          // For now, just set user to null or a partial profile
+          setUser(null);
         }
-      } else {
-        setUser(null);
       }
       setLoading(false);
+    };
+
+    setupAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        const profile = await fetchProfile(session.user.id);
+        setUser(profile);
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+      }
     });
 
-    return () => unsubscribe();
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -62,7 +78,11 @@ export default function App() {
     setIsAuthLoading(true);
     setAuthError(null);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) throw error;
     } catch (error: any) {
       console.error('Login failed:', error);
       setAuthError(error.message || 'Login failed. Please check your credentials.');
@@ -76,8 +96,35 @@ export default function App() {
     setIsAuthLoading(true);
     setAuthError(null);
     try {
-      const { user: firebaseUser } = await createUserWithEmailAndPassword(auth, email, password);
-      // Profile creation is handled by onAuthStateChanged
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: name,
+          }
+        }
+      });
+      
+      if (error) throw error;
+
+      if (data.user) {
+        // Create profile in Supabase
+        const newProfile: UserProfile = {
+          uid: data.user.id,
+          email: data.user.email || '',
+          name: name || 'New User',
+          role: (data.user.email === 'atifnazir1708@gmail.com' || data.user.email === 'admin@admetric.com') ? 'admin' : 'employee',
+          createdAt: new Date().toISOString(),
+        };
+
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([newProfile]);
+
+        if (profileError) throw profileError;
+        setUser(newProfile);
+      }
     } catch (error: any) {
       console.error('Sign up failed:', error);
       setAuthError(error.message || 'Sign up failed. Please try again.');
@@ -87,7 +134,7 @@ export default function App() {
   };
 
   const handleLogout = async () => {
-    await signOut(auth);
+    await supabase.auth.signOut();
   };
 
   if (loading) {
@@ -150,11 +197,6 @@ export default function App() {
                         <span className="font-medium">Authentication Error</span>
                       </div>
                       <p className="text-xs opacity-90">{authError}</p>
-                      {authError.includes('invalid-credential') && (
-                        <p className="text-[10px] font-semibold uppercase mt-1">
-                          Tip: If this is your first time, please use the "Sign Up" tab to create your account.
-                        </p>
-                      )}
                     </div>
                   )}
                   
@@ -164,13 +206,13 @@ export default function App() {
                   </Button>
                 </form>
                 <div className="mt-6 p-4 bg-zinc-50 rounded-lg border border-zinc-100">
-                  <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Initial Admin Access</p>
-                  <p className="text-sm text-zinc-600">Email: <code className="bg-zinc-200 px-1 rounded">admin@admetric.com</code></p>
-                  <p className="text-sm text-zinc-600">Password: <code className="bg-zinc-200 px-1 rounded">admin123</code></p>
-                  <div className="mt-3 space-y-1">
-                    <p className="text-[10px] text-zinc-400 italic">1. Enable Email/Password in Firebase Console.</p>
-                    <p className="text-[10px] text-zinc-400 italic">2. Use "Sign Up" tab first to create this user.</p>
-                  </div>
+                  <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Supabase Migration</p>
+                  <p className="text-sm text-zinc-600">Please ensure your Supabase project is configured with the following tables:</p>
+                  <ul className="text-xs text-zinc-500 mt-2 list-disc list-inside space-y-1">
+                    <li>profiles (uid, email, name, role, storeId, createdAt)</li>
+                    <li>stores (id, name, ownerId, createdAt)</li>
+                    <li>reports (id, storeId, employeeId, employeeName, ...)</li>
+                  </ul>
                 </div>
               </TabsContent>
               

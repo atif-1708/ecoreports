@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { db } from '../lib/firebase';
-import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
+import { supabase } from '../lib/supabase';
 import { UserProfile, CampaignReport, Store } from '../types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { 
@@ -51,27 +50,34 @@ export default function Dashboard({ user }: DashboardProps) {
     setLoading(true);
     try {
       // Fetch stores for filter
-      const storesQuery = user.role === 'admin' 
-        ? collection(db, 'stores') 
-        : query(collection(db, 'stores'), where('id', '==', user.storeId));
+      let storesQuery = supabase.from('stores').select('*');
+      if (user.role !== 'admin') {
+        storesQuery = storesQuery.eq('id', user.storeId);
+      }
       
-      const storesSnap = await getDocs(storesQuery);
-      const storesData = storesSnap.docs.map(doc => ({ id: doc.id, ...(doc.data() as object) } as Store));
-      setStores(storesData);
+      const { data: storesData, error: storesError } = await storesQuery;
+      if (storesError) throw storesError;
+      setStores(storesData as Store[]);
 
       // Fetch reports
-      let reportsQuery;
+      let reportsQuery = supabase
+        .from('reports')
+        .select('*')
+        .order('campaignDate', { ascending: false });
+
       if (user.role === 'admin') {
-        reportsQuery = selectedStore === 'all' 
-          ? query(collection(db, 'reports'), orderBy('campaignDate', 'desc'), limit(100))
-          : query(collection(db, 'reports'), where('storeId', '==', selectedStore), orderBy('campaignDate', 'desc'));
+        if (selectedStore !== 'all') {
+          reportsQuery = reportsQuery.eq('storeId', selectedStore);
+        } else {
+          reportsQuery = reportsQuery.limit(100);
+        }
       } else {
-        reportsQuery = query(collection(db, 'reports'), where('storeId', '==', user.storeId), orderBy('campaignDate', 'desc'));
+        reportsQuery = reportsQuery.eq('storeId', user.storeId);
       }
 
-      const reportsSnap = await getDocs(reportsQuery);
-      const reportsData = reportsSnap.docs.map(doc => ({ id: doc.id, ...(doc.data() as object) } as CampaignReport));
-      setReports(reportsData);
+      const { data: reportsData, error: reportsError } = await reportsQuery;
+      if (reportsError) throw reportsError;
+      setReports(reportsData as CampaignReport[]);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {

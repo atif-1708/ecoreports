@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { db } from '../lib/firebase';
-import { collection, addDoc, getDocs, query, orderBy, deleteDoc, doc } from 'firebase/firestore';
+import { supabase } from '../lib/supabase';
 import { UserProfile, Store } from '../types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { Button } from './ui/button';
@@ -26,9 +25,13 @@ export default function StoreManagement({ user }: StoreManagementProps) {
   const fetchStores = async () => {
     setLoading(true);
     try {
-      const q = query(collection(db, 'stores'), orderBy('createdAt', 'desc'));
-      const snap = await getDocs(q);
-      setStores(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Store)));
+      const { data, error } = await supabase
+        .from('stores')
+        .select('*')
+        .order('createdAt', { ascending: false });
+      
+      if (error) throw error;
+      setStores(data as Store[]);
     } catch (error) {
       console.error('Error fetching stores:', error);
     } finally {
@@ -42,11 +45,15 @@ export default function StoreManagement({ user }: StoreManagementProps) {
     setIsAdding(true);
 
     try {
-      await addDoc(collection(db, 'stores'), {
-        name: newStoreName,
-        ownerId: user.uid,
-        createdAt: new Date().toISOString(),
-      });
+      const { error } = await supabase
+        .from('stores')
+        .insert([{
+          name: newStoreName,
+          ownerId: user.uid,
+          createdAt: new Date().toISOString(),
+        }]);
+      
+      if (error) throw error;
       setNewStoreName('');
       fetchStores();
     } catch (error) {
@@ -59,7 +66,12 @@ export default function StoreManagement({ user }: StoreManagementProps) {
   const handleDeleteStore = async (id: string) => {
     if (!confirm('Are you sure you want to delete this store? This will not delete associated reports.')) return;
     try {
-      await deleteDoc(doc(db, 'stores', id));
+      const { error } = await supabase
+        .from('stores')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
       fetchStores();
     } catch (error) {
       console.error('Error deleting store:', error);
