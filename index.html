@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AdMetric SaaS</title>
+    <script>
+      (function() {
+        const fakeGlobal = {
+          fetch: window.fetch ? window.fetch.bind(window) : undefined,
+          ReadableStream: window.ReadableStream,
+        };
+        window.global = new Proxy(fakeGlobal, {
+          get(target, prop) {
+            if (prop in target) return target[prop];
+            const val = window[prop];
+            if (typeof val === 'function') {
+              try {
+                return val.bind(window);
+              } catch (e) {
+                return val;
+              }
+            }
+            return val;
+          },
+          set(target, prop, value) {
+            target[prop] = value;
+            return true;
+          }
+        });
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

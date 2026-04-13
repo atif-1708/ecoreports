@@ -1,0 +1,120 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: stores
+// Document ID: storeId
+// Fields:
+//   - name: string (required)
+//   - ownerId: string (required) - UID of the agency owner
+//   - createdAt: string (required)
+//
+// Collection: users
+// Document ID: userId
+// Fields:
+//   - email: string (required)
+//   - name: string (optional)
+//   - role: string (required) - 'admin', 'manager', 'employee'
+//   - storeId: string (optional) - required for non-global admins
+//   - createdAt: string (required)
+//
+// Collection: reports
+// Document ID: reportId
+// Fields:
+//   - storeId: string (required)
+//   - employeeId: string (required)
+//   - employeeName: string (required)
+//   - campaignDate: string (required)
+//   - campaignName: string (required)
+//   - purchases: number (required)
+//   - costPerPurchase: number (required)
+//   - confirmed: number (required)
+//   - canceled: number (required)
+//   - pending: number (required)
+//   - totalSpend: number (required)
+//   - netOrders: number (required)
+//   - cancellationRate: number (required)
+//   - confirmationRate: number (required)
+//   - performanceScore: number (required)
+//   - createdAt: string (required)
+//
+// ===============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (getUserData().role == 'admin' || 
+         (request.auth.token.email == "atifnazir1708@gmail.com" && request.auth.token.email_verified == true) ||
+         (request.auth.token.email == "admin@admetric.com"));
+    }
+
+    function isStoreManager(storeId) {
+      let userData = getUserData();
+      return isAuthenticated() && userData.storeId == storeId && userData.role == 'manager';
+    }
+
+    function isStoreEmployee(storeId) {
+      let userData = getUserData();
+      return isAuthenticated() && userData.storeId == storeId && (userData.role == 'employee' || userData.role == 'manager');
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    // User Profiles
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      allow create: if isAuthenticated() && isOwner(userId) && 
+                    request.resource.data.role in ['admin', 'manager', 'employee'] &&
+                    isValidEmail(request.resource.data.email);
+      allow update: if isAuthenticated() && (isOwner(userId) || isAdmin()) &&
+                    // Prevent non-admins from changing their own role or storeId
+                    (isAdmin() || (request.resource.data.role == resource.data.role && 
+                                  request.resource.data.storeId == resource.data.storeId));
+    }
+
+    // Stores
+    match /stores/{storeId} {
+      allow read: if isAuthenticated() && (isAdmin() || getUserData().storeId == storeId);
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Campaign Reports
+    match /reports/{reportId} {
+      allow read: if isAuthenticated() && (isAdmin() || getUserData().storeId == resource.data.storeId);
+      allow create: if isAuthenticated() && (isAdmin() || isStoreEmployee(request.resource.data.storeId));
+      allow update: if isAuthenticated() && (isAdmin() || (isStoreEmployee(resource.data.storeId) && request.auth.uid == resource.data.employeeId));
+      allow delete: if isAdmin();
+    }
+  }
+}
