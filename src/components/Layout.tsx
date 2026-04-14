@@ -9,7 +9,8 @@ import {
   LogOut, 
   Menu,
   X,
-  TrendingUp
+  TrendingUp,
+  BarChart3
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -26,6 +27,7 @@ export default function Layout({ user, activeTab, setActiveTab, onLogout, childr
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'manager', 'employee'] },
+    { id: 'reports_view', label: 'Reports', icon: BarChart3, roles: ['admin', 'manager', 'employee'] },
     { id: 'stores', label: 'Stores', icon: Store, roles: ['admin'] },
     { id: 'employees', label: 'Employees', icon: Users, roles: ['admin', 'manager'] },
     { id: 'reports', label: 'Submit Report', icon: FileText, roles: ['admin', 'manager', 'employee'] },

@@ -105,6 +105,7 @@ export default function ReportForm({ user }: ReportFormProps) {
         roas = totalSpend > 0 ? revenue / totalSpend : 0;
       }
 
+      const cpa = formData.confirmed > 0 ? totalSpend / formData.confirmed : 0;
       const confirmationRate = formData.purchases > 0 ? (formData.confirmed / formData.purchases) * 100 : 0;
       const cancellationRate = formData.purchases > 0 ? (formData.canceled / formData.purchases) * 100 : 0;
       
@@ -124,10 +125,13 @@ export default function ReportForm({ user }: ReportFormProps) {
           canceled: formData.canceled,
           revenue,
           roas,
+          cpa,
           confirmationRate,
           cancellationRate,
           performanceScore,
-          submittedBy: user.uid
+          submittedBy: user.uid,
+          employeeName: user.name,
+          employeeId: user.uid
         }]);
 
       if (insertError) throw insertError;
@@ -180,6 +184,7 @@ export default function ReportForm({ user }: ReportFormProps) {
           roas = totalSpend > 0 ? revenue / totalSpend : 0;
         }
 
+        const cpa = confirmed > 0 ? totalSpend / confirmed : 0;
         const confirmationRate = purchases > 0 ? (confirmed / purchases) * 100 : 0;
         const cancellationRate = purchases > 0 ? ((report.canceled || 0) / purchases) * 100 : 0;
         const performanceScore = Math.min(100, (roas * 20) + (confirmationRate * 0.4));
@@ -190,10 +195,13 @@ export default function ReportForm({ user }: ReportFormProps) {
           totalSpend,
           revenue,
           roas,
+          cpa,
           confirmationRate,
           cancellationRate,
           performanceScore,
-          submittedBy: user.uid
+          submittedBy: user.uid,
+          employeeName: user.name,
+          employeeId: user.uid
         };
       });
 

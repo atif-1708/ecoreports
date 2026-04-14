@@ -12,7 +12,7 @@ import {
 import { 
   TrendingUp, TrendingDown, DollarSign, ShoppingCart, 
   CheckCircle2, AlertCircle, RefreshCw, Search, Sparkles, 
-  Loader2, BarChart3, XCircle, Calendar
+  Loader2, BarChart3, XCircle, Calendar, Target, User
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -110,6 +110,7 @@ export default function Dashboard({ user }: DashboardProps) {
     const totalPurchases = filteredReports.reduce((sum, r) => sum + r.purchases, 0);
     
     const avgRoas = totalSpend > 0 ? totalRevenue / totalSpend : 0;
+    const avgCpa = totalConfirmed > 0 ? totalSpend / totalConfirmed : 0;
     const avgConfirmationRate = totalPurchases > 0 ? (totalConfirmed / totalPurchases) * 100 : 0;
     const avgCancellationRate = totalPurchases > 0 ? (totalCanceled / totalPurchases) * 100 : 0;
     const totalNetOrders = totalConfirmed - totalCanceled;
@@ -121,9 +122,53 @@ export default function Dashboard({ user }: DashboardProps) {
       totalCanceled,
       totalNetOrders,
       avgRoas,
+      avgCpa,
       avgConfirmationRate,
       avgCancellationRate
     };
+  }, [filteredReports]);
+
+  const topCampaigns = useMemo(() => {
+    return [...filteredReports]
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5);
+  }, [filteredReports]);
+
+  const employeePerformance = useMemo(() => {
+    const perf: Record<string, { name: string, revenue: number, spend: number, reports: number, roas: number }> = {};
+    
+    filteredReports.forEach(r => {
+      const id = r.employeeId || 'system';
+      if (!perf[id]) {
+        perf[id] = { name: r.employeeName || 'System', revenue: 0, spend: 0, reports: 0, roas: 0 };
+      }
+      perf[id].revenue += r.revenue;
+      perf[id].spend += r.totalSpend;
+      perf[id].reports += 1;
+    });
+
+    return Object.values(perf).map(p => ({
+      ...p,
+      roas: p.spend > 0 ? p.revenue / p.spend : 0
+    })).sort((a, b) => b.revenue - a.revenue);
+  }, [filteredReports]);
+
+  const cpaDistribution = useMemo(() => {
+    const ranges: Record<string, number> = {
+      '<$10': 0,
+      '$10-$20': 0,
+      '$20-$50': 0,
+      '$50+': 0
+    };
+
+    filteredReports.forEach(r => {
+      if (r.cpa < 10) ranges['<$10']++;
+      else if (r.cpa < 20) ranges['$10-$20']++;
+      else if (r.cpa < 50) ranges['$20-$50']++;
+      else ranges['$50+']++;
+    });
+
+    return Object.entries(ranges).map(([name, value]) => ({ name, value }));
   }, [filteredReports]);
 
   const chartData = useMemo(() => {
@@ -327,13 +372,77 @@ export default function Dashboard({ user }: DashboardProps) {
               <CardContent className="p-8">
                 <div className="flex items-center justify-between mb-6">
                   <div className="p-4 bg-white/10 text-white rounded-2xl">
-                    <CheckCircle2 size={28} />
+                    <Target size={28} />
                   </div>
                 </div>
-                <p className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em]">Active Campaigns</p>
+                <p className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em]">Avg. CPA</p>
                 <h3 className="text-4xl font-black text-white mt-2 data-value tracking-tighter">
-                  {filteredReports.length}
+                  ${stats.avgCpa.toFixed(2)}
                 </h3>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Analysis Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+            <Card className="border-none shadow-sm bg-white rounded-[40px] p-4">
+              <CardHeader className="px-6 pt-6">
+                <CardTitle className="text-2xl font-black tracking-tight">Top Performing Campaigns</CardTitle>
+                <CardDescription className="text-zinc-500 font-medium">Ranked by revenue generation.</CardDescription>
+              </CardHeader>
+              <CardContent className="px-6 pb-6">
+                <div className="space-y-4 mt-4">
+                  {topCampaigns.map((campaign, idx) => (
+                    <div key={campaign.id} className="flex items-center justify-between p-4 bg-zinc-50 rounded-2xl group hover:bg-brand-50 transition-all">
+                      <div className="flex items-center gap-4">
+                        <div className="h-10 w-10 rounded-xl bg-white flex items-center justify-center font-black text-zinc-400 group-hover:text-brand-600 shadow-sm">
+                          {idx + 1}
+                        </div>
+                        <div>
+                          <p className="font-black text-zinc-900">{campaign.campaignName}</p>
+                          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">ROAS: {campaign.roas.toFixed(2)}x</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-black text-zinc-900 data-value">${campaign.revenue.toLocaleString()}</p>
+                        <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Excellent</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-none shadow-sm bg-white rounded-[40px] p-4">
+              <CardHeader className="px-6 pt-6">
+                <CardTitle className="text-2xl font-black tracking-tight">Employee Performance</CardTitle>
+                <CardDescription className="text-zinc-500 font-medium">Leaderboard by revenue contribution.</CardDescription>
+              </CardHeader>
+              <CardContent className="px-6 pb-6">
+                <div className="space-y-4 mt-4">
+                  {employeePerformance.map((emp, idx) => (
+                    <div key={emp.name} className="flex items-center justify-between p-4 bg-zinc-50 rounded-2xl group hover:bg-indigo-50 transition-all">
+                      <div className="flex items-center gap-4">
+                        <div className="h-10 w-10 rounded-xl bg-white flex items-center justify-center text-zinc-400 group-hover:text-indigo-600 shadow-sm">
+                          <User size={20} />
+                        </div>
+                        <div>
+                          <p className="font-black text-zinc-900">{emp.name}</p>
+                          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{emp.reports} Reports • {emp.roas.toFixed(2)}x ROAS</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-black text-zinc-900 data-value">${emp.revenue.toLocaleString()}</p>
+                        <div className="w-24 h-1.5 bg-zinc-200 rounded-full mt-1 overflow-hidden">
+                          <div 
+                            className="h-full bg-indigo-500 rounded-full" 
+                            style={{ width: `${Math.min(100, (emp.revenue / stats.totalRevenue) * 100)}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -385,64 +494,33 @@ export default function Dashboard({ user }: DashboardProps) {
                 </CardContent>
               </Card>
 
-              {/* AI Insights Card */}
-              <Card className="border-none shadow-sm bg-zinc-950 text-white rounded-[40px] overflow-hidden relative min-h-[400px] flex flex-col">
-                <div className="absolute top-0 right-0 p-12 opacity-10 pointer-events-none">
-                  <Sparkles size={240} />
-                </div>
-                <CardHeader className="p-10 pb-0">
-                  <div className="flex items-center gap-2 text-brand-400 font-black text-[10px] uppercase tracking-[0.3em] mb-4">
-                    <Sparkles size={16} />
-                    <span>AI Performance Intelligence</span>
-                  </div>
-                  <CardTitle className="text-4xl font-black text-white tracking-tighter">Gemini Strategy Analysis</CardTitle>
+              <Card className="border-none shadow-sm bg-white rounded-[40px] p-4">
+                <CardHeader className="px-6 pt-6">
+                  <CardTitle className="text-2xl font-black tracking-tight">CPA Distribution</CardTitle>
+                  <CardDescription className="text-zinc-500 font-medium">Number of campaigns within CPA ranges.</CardDescription>
                 </CardHeader>
-                <CardContent className="p-10 relative z-10 flex-1 flex flex-col">
-                  {aiInsights ? (
-                    <div className="prose prose-invert max-w-none">
-                      <div className="p-8 bg-white/5 rounded-[32px] border border-white/10 backdrop-blur-sm">
-                        <p className="text-zinc-300 leading-relaxed whitespace-pre-wrap text-lg font-medium">
-                          {aiInsights}
-                        </p>
-                      </div>
-                      <Button 
-                        variant="outline" 
-                        className="mt-8 border-white/20 text-white hover:bg-white/10 rounded-2xl h-12 px-8"
-                        onClick={() => setAiInsights('')}
-                      >
-                        Clear Analysis
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center flex-1 text-center space-y-8 py-10">
-                      <div className="relative">
-                        <div className="absolute inset-0 bg-brand-500 blur-[60px] opacity-20 animate-pulse"></div>
-                        <div className="relative p-8 bg-white/5 rounded-full border border-white/10 backdrop-blur-xl">
-                          <Sparkles className="text-brand-400" size={48} />
-                        </div>
-                      </div>
-                      <div className="space-y-3">
-                        <p className="text-2xl font-black tracking-tight">Ready for deep analysis?</p>
-                        <p className="text-zinc-400 text-lg max-w-md font-medium">
-                          Let Gemini analyze your campaign data to find hidden opportunities and optimization strategies.
-                        </p>
-                      </div>
-                      <Button 
-                        onClick={generateInsights} 
-                        disabled={isGeneratingInsights || filteredReports.length === 0}
-                        className="bg-white text-zinc-950 hover:bg-zinc-200 rounded-[20px] h-14 px-12 text-lg font-black shadow-2xl shadow-white/10 transition-all hover:scale-105 active:scale-95"
-                      >
-                        {isGeneratingInsights ? (
-                          <>
-                            <Loader2 className="mr-3 animate-spin" size={24} />
-                            Analyzing Data...
-                          </>
-                        ) : (
-                          'Generate AI Insights'
-                        )}
-                      </Button>
-                    </div>
-                  )}
+                <CardContent className="px-6 pb-6">
+                  <div className="h-[300px] w-full mt-6">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={cpaDistribution} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f0f0f0" />
+                        <XAxis type="number" hide />
+                        <YAxis 
+                          dataKey="name" 
+                          type="category" 
+                          axisLine={false} 
+                          tickLine={false} 
+                          tick={{ fontSize: 12, fill: '#71717a', fontWeight: 700 }}
+                          width={80}
+                        />
+                        <Tooltip 
+                          cursor={{ fill: '#f8fafc' }}
+                          contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}
+                        />
+                        <Bar dataKey="value" fill="#f59e0b" radius={[0, 8, 8, 0]} name="Campaigns" barSize={40} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -492,36 +570,64 @@ export default function Dashboard({ user }: DashboardProps) {
                 </CardContent>
               </Card>
 
-              <Card className="border-none shadow-sm bg-white rounded-[40px] p-4">
-                <CardHeader className="px-6 pt-6">
-                  <CardTitle className="text-2xl font-black tracking-tight">Recent Activity</CardTitle>
-                  <CardDescription className="text-zinc-500 font-medium">Latest campaign reports.</CardDescription>
-                </CardHeader>
-                <CardContent className="px-6 pb-6">
-                  <div className="mt-4 space-y-1">
-                    {filteredReports.slice(0, 6).map((report) => (
-                      <div key={report.id} className="p-4 flex items-center justify-between hover:bg-zinc-50 rounded-2xl transition-all group cursor-default">
-                        <div className="space-y-1">
-                          <p className="text-sm font-black text-zinc-900 group-hover:text-brand-600 transition-colors">{report.campaignName}</p>
-                          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{format(parseISO(report.campaignDate), 'MMM d, yyyy')}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-black text-zinc-900 data-value">${report.revenue.toLocaleString()}</p>
-                          <Badge variant="outline" className="text-[10px] font-black py-0 h-5 border-zinc-200 text-zinc-500 rounded-lg">
-                            {report.roas.toFixed(1)}x
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
-                    {filteredReports.length === 0 && (
-                      <div className="p-12 text-center space-y-3">
-                        <div className="inline-flex p-4 bg-zinc-50 rounded-full text-zinc-300">
-                          <BarChart3 size={32} />
-                        </div>
-                        <p className="text-zinc-400 text-sm font-bold">No recent activity found.</p>
-                      </div>
-                    )}
+              {/* AI Insights Card */}
+              <Card className="border-none shadow-sm bg-zinc-950 text-white rounded-[40px] overflow-hidden relative min-h-[400px] flex flex-col">
+                <div className="absolute top-0 right-0 p-12 opacity-10 pointer-events-none">
+                  <Sparkles size={240} />
+                </div>
+                <CardHeader className="p-10 pb-0">
+                  <div className="flex items-center gap-2 text-brand-400 font-black text-[10px] uppercase tracking-[0.3em] mb-4">
+                    <Sparkles size={16} />
+                    <span>AI Performance Intelligence</span>
                   </div>
+                  <CardTitle className="text-3xl font-black text-white tracking-tighter leading-tight">Gemini Strategy Analysis</CardTitle>
+                </CardHeader>
+                <CardContent className="p-10 relative z-10 flex-1 flex flex-col">
+                  {aiInsights ? (
+                    <div className="prose prose-invert max-w-none">
+                      <div className="p-6 bg-white/5 rounded-[32px] border border-white/10 backdrop-blur-sm">
+                        <p className="text-zinc-300 leading-relaxed whitespace-pre-wrap text-sm font-medium">
+                          {aiInsights}
+                        </p>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        className="mt-6 border-white/20 text-white hover:bg-white/10 rounded-2xl h-12 px-8 w-full"
+                        onClick={() => setAiInsights('')}
+                      >
+                        Clear Analysis
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center flex-1 text-center space-y-6 py-4">
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-brand-500 blur-[40px] opacity-20 animate-pulse"></div>
+                        <div className="relative p-6 bg-white/5 rounded-full border border-white/10 backdrop-blur-xl">
+                          <Sparkles className="text-brand-400" size={32} />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-xl font-black tracking-tight">Ready for deep analysis?</p>
+                        <p className="text-zinc-400 text-sm font-medium">
+                          Let Gemini analyze your campaign data to find hidden opportunities.
+                        </p>
+                      </div>
+                      <Button 
+                        onClick={generateInsights} 
+                        disabled={isGeneratingInsights || filteredReports.length === 0}
+                        className="bg-white text-zinc-950 hover:bg-zinc-200 rounded-[20px] h-14 px-8 w-full text-sm font-black shadow-2xl shadow-white/10 transition-all hover:scale-105 active:scale-95"
+                      >
+                        {isGeneratingInsights ? (
+                          <>
+                            <Loader2 className="mr-3 animate-spin" size={20} />
+                            Analyzing...
+                          </>
+                        ) : (
+                          'Generate AI Insights'
+                        )}
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>

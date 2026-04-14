@@ -41,6 +41,7 @@ export interface CampaignReport {
   totalSpend: number;
   revenue: number;
   roas: number;
+  cpa: number;
   netOrders: number;
   cancellationRate: number;
   confirmationRate: number;

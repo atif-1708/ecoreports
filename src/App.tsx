@@ -10,6 +10,7 @@ import Dashboard from '@/components/Dashboard';
 import StoreManagement from '@/components/StoreManagement';
 import EmployeeManagement from '@/components/EmployeeManagement';
 import ReportForm from '@/components/ReportForm';
+import Reports from '@/components/Reports';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button.tsx';
 import { Input } from '@/components/ui/input.tsx';
@@ -362,6 +363,8 @@ export default function App() {
     switch (activeTab) {
       case 'dashboard':
         return <Dashboard user={user} />;
+      case 'reports_view':
+        return <Reports user={user} />;
       case 'stores':
         return <StoreManagement user={user} />;
       case 'employees':
