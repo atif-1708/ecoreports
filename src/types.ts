@@ -5,7 +5,15 @@ export interface UserProfile {
   email: string;
   name: string;
   role: UserRole;
-  storeId?: string; // Optional for global admins, required for store employees
+  storeId?: string; // Primary store (legacy)
+  tempPassword?: string; // For admin-created accounts
+  createdAt: string;
+}
+
+export interface StoreAssignment {
+  id: string;
+  employeeId: string;
+  storeId: string;
   createdAt: string;
 }
 

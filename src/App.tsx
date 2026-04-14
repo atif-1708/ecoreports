@@ -200,9 +200,8 @@ export default function App() {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="login" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsList className="grid w-full grid-cols-1 mb-6">
                 <TabsTrigger value="login">Login</TabsTrigger>
-                <TabsTrigger value="signup">Sign Up</TabsTrigger>
               </TabsList>
               
               <TabsContent value="login">
@@ -251,55 +250,6 @@ export default function App() {
                     <li>reports (id, storeId, employeeId, employeeName, ...)</li>
                   </ul>
                 </div>
-              </TabsContent>
-              
-              <TabsContent value="signup">
-                <form onSubmit={handleSignUp} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-name">Full Name</Label>
-                    <Input 
-                      id="signup-name" 
-                      placeholder="John Doe" 
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      required 
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
-                    <Input 
-                      id="signup-email" 
-                      type="email" 
-                      placeholder="john@example.com" 
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required 
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password">Password</Label>
-                    <Input 
-                      id="signup-password" 
-                      type="password" 
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required 
-                    />
-                  </div>
-                  
-                  {authError && (
-                    <Alert variant="destructive" className="mb-6">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertTitle>Registration Error</AlertTitle>
-                      <AlertDescription>{authError}</AlertDescription>
-                    </Alert>
-                  )}
-                  
-                  <Button type="submit" className="w-full gap-2" disabled={isAuthLoading}>
-                    {isAuthLoading ? <Loader2 className="animate-spin" size={18} /> : <UserPlus size={18} />}
-                    Create Account
-                  </Button>
-                </form>
               </TabsContent>
             </Tabs>
           </CardContent>

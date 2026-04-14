@@ -8,9 +8,11 @@ import { Label } from '@/components/ui/label.tsx';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select.tsx';
 import { Calendar } from '@/components/ui/calendar.tsx';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover.tsx';
-import { CalendarIcon, CheckCircle2, Loader2 } from 'lucide-react';
+import { CalendarIcon, CheckCircle2, Loader2, Download, Upload, FileSpreadsheet, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { generateSampleExcel, parseReportExcel } from '@/lib/excel';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert.tsx';
 
 interface ReportFormProps {
   user: UserProfile;
@@ -20,6 +22,8 @@ export default function ReportForm({ user }: ReportFormProps) {
   const [stores, setStores] = useState<Store[]>([]);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
   
   const [formData, setFormData] = useState({
     storeId: user.storeId || '',
@@ -52,6 +56,40 @@ export default function ReportForm({ user }: ReportFormProps) {
     };
     fetchStores();
   }, [user]);
+
+  const handleExcelImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !formData.storeId) return;
+
+    setImporting(true);
+    setError(null);
+    try {
+      const parsedReports = await parseReportExcel(file);
+      
+      const reportsToInsert = parsedReports.map(report => ({
+        ...report,
+        storeId: formData.storeId,
+        employeeId: user.uid,
+        employeeName: user.name,
+        createdAt: new Date().toISOString(),
+      }));
+
+      const { error: insertError } = await supabase
+        .from('reports')
+        .insert(reportsToInsert);
+
+      if (insertError) throw insertError;
+      
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err: any) {
+      console.error('Excel import error:', err);
+      setError(err.message || 'Failed to import Excel data. Please check the file format.');
+    } finally {
+      setImporting(false);
+      if (e.target) e.target.value = ''; 
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,23 +146,92 @@ export default function ReportForm({ user }: ReportFormProps) {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <Card className="border-none shadow-sm bg-white">
-        <CardHeader>
-          <CardTitle>Submit Weekly Report</CardTitle>
-          <CardDescription>Enter campaign performance data for the past week.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {success ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center space-y-4">
-              <div className="h-16 w-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center">
-                <CheckCircle2 size={32} />
-              </div>
-              <h3 className="text-xl font-bold text-zinc-900">Report Submitted!</h3>
-              <p className="text-zinc-500">Your performance data has been recorded successfully.</p>
-              <Button variant="outline" onClick={() => setSuccess(false)}>Submit Another</Button>
+    <div className="max-w-5xl mx-auto space-y-8">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight text-zinc-900">Weekly Performance Report</h1>
+        <p className="text-zinc-500">Submit your campaign metrics via Excel or manual entry.</p>
+      </div>
+
+      {success && (
+        <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center gap-3 text-emerald-800 animate-in fade-in slide-in-from-top-4">
+          <CheckCircle2 className="text-emerald-600" />
+          <p className="font-medium">Report submitted successfully!</p>
+        </div>
+      )}
+
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Import Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Excel Import Section */}
+        <Card className="lg:col-span-1 border-none shadow-sm bg-white h-fit">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileSpreadsheet className="text-emerald-600" size={20} />
+              Excel Import
+            </CardTitle>
+            <CardDescription>Fastest way to upload bulk data.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Target Store</Label>
+              <Select 
+                value={formData.storeId} 
+                onValueChange={(val) => setFormData(prev => ({ ...prev, storeId: val }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select store" />
+                </SelectTrigger>
+                <SelectContent>
+                  {stores.map(store => (
+                    <SelectItem key={store.id} value={store.id}>{store.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          ) : (
+
+            <div className="pt-2 space-y-3">
+              <Button 
+                variant="outline" 
+                className="w-full gap-2 text-zinc-600"
+                onClick={generateSampleExcel}
+              >
+                <Download size={16} />
+                Download Sample
+              </Button>
+              
+              <div className="relative">
+                <input 
+                  type="file" 
+                  accept=".xlsx, .xls" 
+                  className="absolute inset-0 opacity-0 cursor-pointer" 
+                  onChange={handleExcelImport}
+                  disabled={importing || !formData.storeId}
+                />
+                <Button 
+                  className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700" 
+                  disabled={importing || !formData.storeId}
+                >
+                  {importing ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} />}
+                  Import Filled File
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Manual Form Section */}
+        <Card className="lg:col-span-2 border-none shadow-sm bg-white">
+          <CardHeader>
+            <CardTitle>Manual Entry</CardTitle>
+            <CardDescription>Enter details for a single campaign manually.</CardDescription>
+          </CardHeader>
+          <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
@@ -254,9 +361,9 @@ export default function ReportForm({ user }: ReportFormProps) {
                 </Button>
               </div>
             </form>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

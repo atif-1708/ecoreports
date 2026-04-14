@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { UserProfile, Store, UserRole } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card.tsx';
@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button.tsx';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select.tsx';
 import { Label } from '@/components/ui/label.tsx';
 import { Badge } from '@/components/ui/badge.tsx';
+import { Input } from '@/components/ui/input.tsx';
 import { 
   Table, 
   TableBody, 
@@ -14,7 +15,16 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table.tsx';
-import { Users, Mail, Shield, Store as StoreIcon } from 'lucide-react';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger 
+} from '@/components/ui/dialog.tsx';
+import { Users, Mail, Shield, Store as StoreIcon, UserPlus, Copy, Check, Loader2 } from 'lucide-react';
 
 interface EmployeeManagementProps {
   user: UserProfile;
@@ -24,10 +34,87 @@ export default function EmployeeManagement({ user }: EmployeeManagementProps) {
   const [employees, setEmployees] = useState<UserProfile[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Add Employee State
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [newEmpEmail, setNewEmpEmail] = useState('');
+  const [newEmpName, setNewEmpName] = useState('');
+  const [newEmpRole, setNewEmpRole] = useState<UserRole>('employee');
+  const [generatedPassword, setGeneratedPassword] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     fetchData();
   }, [user]);
+
+  const generatePassword = () => {
+    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+    let retVal = "";
+    for (let i = 0, n = charset.length; i < 12; ++i) {
+      retVal += charset.charAt(Math.floor(Math.random() * n));
+    }
+    return retVal;
+  };
+
+  const handleAddEmployee = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsCreating(true);
+    const password = generatePassword();
+    setGeneratedPassword(password);
+
+    try {
+      // In a real app with admin privileges, we'd use auth.admin.createUser
+      // For this demo, we'll use signUp which might sign the admin out, 
+      // OR we just create the profile and the user signs up themselves.
+      // The user requested "Credentials will be generated", so we'll simulate it.
+      
+      const { data, error: authError } = await supabase.auth.signUp({
+        email: newEmpEmail,
+        password: password,
+        options: {
+          data: {
+            full_name: newEmpName,
+          }
+        }
+      });
+
+      if (authError) throw authError;
+
+      if (data.user) {
+        const newProfile: UserProfile = {
+          uid: data.user.id,
+          email: newEmpEmail,
+          name: newEmpName,
+          role: newEmpRole,
+          tempPassword: password,
+          createdAt: new Date().toISOString(),
+        };
+
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([newProfile]);
+
+        if (profileError) throw profileError;
+        
+        // Note: Admin might be signed out here depending on Supabase config.
+        // In a production app, this would be a server-side function.
+      }
+      
+      fetchData();
+    } catch (error) {
+      console.error('Error adding employee:', error);
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const copyCredentials = () => {
+    const text = `Email: ${newEmpEmail}\nPassword: ${generatedPassword}`;
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -78,6 +165,8 @@ export default function EmployeeManagement({ user }: EmployeeManagementProps) {
 
   const handleUpdateStore = async (uid: string, storeId: string) => {
     try {
+      // For now, we'll stick to the single storeId in profiles for simplicity
+      // but we could expand this to a separate table for many-to-many.
       const { error } = await supabase
         .from('profiles')
         .update({ storeId })
@@ -92,9 +181,105 @@ export default function EmployeeManagement({ user }: EmployeeManagementProps) {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-zinc-900">Employee Management</h1>
-        <p className="text-zinc-500">Manage team roles and assign employees to client stores.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-zinc-900">Employee Management</h1>
+          <p className="text-zinc-500">Manage team roles and assign employees to client stores.</p>
+        </div>
+        
+        {user.role === 'admin' && (
+          <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
+            setIsAddDialogOpen(open);
+            if (!open) {
+              setGeneratedPassword('');
+              setNewEmpEmail('');
+              setNewEmpName('');
+            }
+          }}>
+            <DialogTrigger render={<Button className="gap-2"><UserPlus size={18} /> Add Employee</Button>} />
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Add New Employee</DialogTitle>
+                <DialogDescription>
+                  Create credentials for a new team member. They will use these to log in.
+                </DialogDescription>
+              </DialogHeader>
+              
+              {!generatedPassword ? (
+                <form onSubmit={handleAddEmployee} className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Full Name</Label>
+                    <Input 
+                      id="name" 
+                      placeholder="Jane Smith" 
+                      value={newEmpName}
+                      onChange={(e) => setNewEmpName(e.target.value)}
+                      required 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email Address</Label>
+                    <Input 
+                      id="email" 
+                      type="email" 
+                      placeholder="jane@admetric.com" 
+                      value={newEmpEmail}
+                      onChange={(e) => setNewEmpEmail(e.target.value)}
+                      required 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="role">Role</Label>
+                    <Select value={newEmpRole} onValueChange={(val) => setNewEmpRole(val as UserRole)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="employee">Employee</SelectItem>
+                        <SelectItem value="manager">Manager</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <DialogFooter>
+                    <Button type="submit" className="w-full" disabled={isCreating}>
+                      {isCreating ? <Loader2 className="animate-spin mr-2" size={18} /> : null}
+                      Generate Credentials
+                    </Button>
+                  </DialogFooter>
+                </form>
+              ) : (
+                <div className="space-y-6 py-4">
+                  <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-lg">
+                    <p className="text-sm text-emerald-800 font-medium mb-1">Account Created Successfully!</p>
+                    <p className="text-xs text-emerald-600">Copy these details and send them to the employee.</p>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="p-3 bg-zinc-50 rounded border border-zinc-200 font-mono text-sm break-all">
+                      <p><span className="text-zinc-400">Email:</span> {newEmpEmail}</p>
+                      <p><span className="text-zinc-400">Pass:</span> {generatedPassword}</p>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      className="w-full gap-2" 
+                      onClick={copyCredentials}
+                    >
+                      {copied ? <Check size={16} className="text-emerald-600" /> : <Copy size={16} />}
+                      {copied ? 'Copied!' : 'Copy Credentials'}
+                    </Button>
+                  </div>
+                  
+                  <DialogFooter>
+                    <Button variant="ghost" className="w-full" onClick={() => setIsAddDialogOpen(false)}>
+                      Close
+                    </Button>
+                  </DialogFooter>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       <Card className="border-none shadow-sm bg-white overflow-hidden">

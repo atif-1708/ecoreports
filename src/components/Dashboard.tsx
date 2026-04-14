@@ -24,8 +24,12 @@ import {
   CheckCircle2, 
   XCircle,
   AlertCircle,
-  Sparkles
+  Sparkles,
+  Search,
+  Filter,
+  BarChart3
 } from 'lucide-react';
+import { Input } from '@/components/ui/input.tsx';
 import { format, parseISO, startOfWeek, endOfWeek, subDays } from 'date-fns';
 import { getCampaignInsights } from '@/lib/gemini';
 import { Button } from '@/components/ui/button.tsx';
@@ -50,6 +54,8 @@ export default function Dashboard({ user }: DashboardProps) {
   const [loading, setLoading] = useState(true);
   const [aiInsights, setAiInsights] = useState<string>('');
   const [isGeneratingInsights, setIsGeneratingInsights] = useState(false);
+  const [viewMode, setViewMode] = useState<'summary' | 'detailed'>('summary');
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -137,26 +143,49 @@ export default function Dashboard({ user }: DashboardProps) {
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-zinc-900">Performance Overview</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-zinc-900">Performance Dashboard</h1>
           <p className="text-zinc-500">Track and analyze your agency's campaign effectiveness.</p>
         </div>
         
-        {user.role === 'admin' && (
-          <select 
-            className="bg-white border border-zinc-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
-            value={selectedStore}
-            onChange={(e) => setSelectedStore(e.target.value)}
-          >
-            <option value="all">All Stores</option>
-            {stores.map(store => (
-              <option key={store.id} value={store.id}>{store.name}</option>
-            ))}
-          </select>
-        )}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1 bg-zinc-100 p-1 rounded-lg">
+            <Button 
+              variant={viewMode === 'summary' ? 'default' : 'ghost'} 
+              size="sm" 
+              onClick={() => setViewMode('summary')}
+              className="h-8 text-xs"
+            >
+              Summary
+            </Button>
+            <Button 
+              variant={viewMode === 'detailed' ? 'default' : 'ghost'} 
+              size="sm" 
+              onClick={() => setViewMode('detailed')}
+              className="h-8 text-xs"
+            >
+              Detailed Analytics
+            </Button>
+          </div>
+
+          {user.role === 'admin' && (
+            <select 
+              className="bg-white border border-zinc-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+              value={selectedStore}
+              onChange={(e) => setSelectedStore(e.target.value)}
+            >
+              <option value="all">All Stores</option>
+              {stores.map(store => (
+                <option key={store.id} value={store.id}>{store.name}</option>
+              ))}
+            </select>
+          )}
+        </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {viewMode === 'summary' ? (
+        <>
+          {/* KPI Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="border-none shadow-sm bg-white">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-zinc-500">Total Ad Spend</CardTitle>
@@ -347,6 +376,88 @@ export default function Dashboard({ user }: DashboardProps) {
           </Table>
         </CardContent>
       </Card>
+    </>
+  ) : (
+    <div className="space-y-6">
+      <Card className="border-none shadow-sm bg-white">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Detailed Campaign Analysis</CardTitle>
+            <CardDescription>Deep dive into every metric across all stores.</CardDescription>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-zinc-400" />
+              <Input 
+                placeholder="Search campaigns..." 
+                className="pl-9 w-[250px] h-9"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <Button variant="outline" size="sm" className="h-9 gap-2">
+              <Filter size={16} />
+              Filters
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="px-6 py-4">Campaign</TableHead>
+                <TableHead className="px-6 py-4">Store</TableHead>
+                <TableHead className="px-6 py-4 text-right">Purchases</TableHead>
+                <TableHead className="px-6 py-4 text-right">CPP</TableHead>
+                <TableHead className="px-6 py-4 text-right">Spend</TableHead>
+                <TableHead className="px-6 py-4 text-right">Conf. Rate</TableHead>
+                <TableHead className="px-6 py-4 text-right">Canc. Rate</TableHead>
+                <TableHead className="px-6 py-4 text-right">Score</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {reports
+                .filter(r => r.campaignName.toLowerCase().includes(searchTerm.toLowerCase()))
+                .map((report) => (
+                <TableRow key={report.id} className="hover:bg-zinc-50 transition-colors">
+                  <TableCell className="px-6 py-4">
+                    <div>
+                      <p className="font-medium text-zinc-900">{report.campaignName}</p>
+                      <p className="text-xs text-zinc-500">{format(parseISO(report.campaignDate), 'MMM dd, yyyy')}</p>
+                    </div>
+                  </TableCell>
+                  <TableCell className="px-6 py-4">
+                    <Badge variant="outline" className="font-normal">{report.storeId.slice(0, 8)}...</Badge>
+                  </TableCell>
+                  <TableCell className="px-6 py-4 text-right font-mono">{report.purchases}</TableCell>
+                  <TableCell className="px-6 py-4 text-right font-mono">${report.costPerPurchase.toFixed(2)}</TableCell>
+                  <TableCell className="px-6 py-4 text-right font-mono font-medium">${report.totalSpend.toLocaleString()}</TableCell>
+                  <TableCell className="px-6 py-4 text-right text-emerald-600 font-medium">
+                    {report.confirmationRate.toFixed(1)}%
+                  </TableCell>
+                  <TableCell className="px-6 py-4 text-right text-rose-600 font-medium">
+                    {report.cancellationRate.toFixed(1)}%
+                  </TableCell>
+                  <TableCell className="px-6 py-4 text-right">
+                    <Badge 
+                      variant={
+                        report.performanceScore >= 80 ? 'default' :
+                        report.performanceScore >= 50 ? 'secondary' :
+                        'destructive'
+                      }
+                      className="text-[10px] font-bold uppercase"
+                    >
+                      {report.performanceScore.toFixed(0)}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
+  )}
     </div>
   );
 }
