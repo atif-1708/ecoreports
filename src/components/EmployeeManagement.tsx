@@ -5,6 +5,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button.tsx';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select.tsx';
 import { Label } from '@/components/ui/label.tsx';
+import { Badge } from '@/components/ui/badge.tsx';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table.tsx';
 import { Users, Mail, Shield, Store as StoreIcon } from 'lucide-react';
 
 interface EmployeeManagementProps {
@@ -94,83 +103,86 @@ export default function EmployeeManagement({ user }: EmployeeManagementProps) {
           <CardDescription>A list of all employees and their current access levels.</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="text-xs text-zinc-500 uppercase bg-zinc-50 border-y border-zinc-100">
-                <tr>
-                  <th className="px-6 py-4 font-semibold">Name & Email</th>
-                  <th className="px-6 py-4 font-semibold">Current Role</th>
-                  <th className="px-6 py-4 font-semibold">Assigned Store</th>
-                  <th className="px-6 py-4 font-semibold text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100">
-                {employees.map((emp) => (
-                  <tr key={emp.uid} className="hover:bg-zinc-50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-600 font-bold">
-                          {emp.name.charAt(0)}
-                        </div>
-                        <div>
-                          <p className="font-medium text-zinc-900">{emp.name}</p>
-                          <p className="text-xs text-zinc-500 flex items-center gap-1">
-                            <Mail size={12} />
-                            {emp.email}
-                          </p>
-                        </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="px-6 py-4">Name & Email</TableHead>
+                <TableHead className="px-6 py-4">Current Role</TableHead>
+                <TableHead className="px-6 py-4">Assigned Store</TableHead>
+                <TableHead className="px-6 py-4 text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {employees.map((emp) => (
+                <TableRow key={emp.uid} className="hover:bg-zinc-50 transition-colors">
+                  <TableCell className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-600 font-bold">
+                        {emp.name.charAt(0)}
                       </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <Select 
-                        value={emp.role} 
-                        onValueChange={(val) => handleUpdateRole(emp.uid, val as UserRole)}
-                        disabled={user.role !== 'admin' && emp.uid !== user.uid}
-                      >
-                        <SelectTrigger className="w-[140px] h-9">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="manager">Manager</SelectItem>
-                          <SelectItem value="employee">Employee</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </td>
-                    <td className="px-6 py-4">
-                      <Select 
-                        value={emp.storeId || 'none'} 
-                        onValueChange={(val) => handleUpdateStore(emp.uid, val === 'none' ? '' : val)}
-                        disabled={user.role !== 'admin'}
-                      >
-                        <SelectTrigger className="w-[180px] h-9">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">No Store Assigned</SelectItem>
-                          {stores.map(store => (
-                            <SelectItem key={store.id} value={store.id}>{store.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <Button variant="ghost" size="sm" disabled>
-                        Manage
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-                {employees.length === 0 && !loading && (
-                  <tr>
-                    <td colSpan={4} className="px-6 py-12 text-center text-zinc-400">
-                      No team members found.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-zinc-900">{emp.name}</p>
+                          {emp.uid === user.uid && (
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">You</Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-zinc-500 flex items-center gap-1">
+                          <Mail size={12} />
+                          {emp.email}
+                        </p>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell className="px-6 py-4">
+                    <Select 
+                      value={emp.role} 
+                      onValueChange={(val) => handleUpdateRole(emp.uid, val as UserRole)}
+                      disabled={user.role !== 'admin' && emp.uid !== user.uid}
+                    >
+                      <SelectTrigger className="w-[140px] h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="manager">Manager</SelectItem>
+                        <SelectItem value="employee">Employee</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell className="px-6 py-4">
+                    <Select 
+                      value={emp.storeId || 'none'} 
+                      onValueChange={(val) => handleUpdateStore(emp.uid, val === 'none' ? '' : val)}
+                      disabled={user.role !== 'admin'}
+                    >
+                      <SelectTrigger className="w-[180px] h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No Store Assigned</SelectItem>
+                        {stores.map(store => (
+                          <SelectItem key={store.id} value={store.id}>{store.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell className="px-6 py-4 text-right">
+                    <Button variant="ghost" size="sm" disabled>
+                      Manage
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {employees.length === 0 && !loading && (
+                <TableRow>
+                  <TableCell colSpan={4} className="px-6 py-12 text-center text-zinc-400">
+                    No team members found.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>

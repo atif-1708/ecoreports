@@ -11,9 +11,11 @@ import StoreManagement from '@/components/StoreManagement';
 import EmployeeManagement from '@/components/EmployeeManagement';
 import ReportForm from '@/components/ReportForm';
 import Layout from '@/components/Layout';
+import { Button } from '@/components/ui/button.tsx';
 import { Input } from '@/components/ui/input.tsx';
 import { Label } from '@/components/ui/label.tsx';
 import { LayoutDashboard, LogIn, UserPlus, AlertCircle, Loader2 } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert.tsx';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.tsx';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs.tsx';
 
@@ -202,13 +204,11 @@ export default function App() {
                   </div>
                   
                   {authError && (
-                    <div className="flex flex-col gap-2 text-sm text-rose-600 bg-rose-50 p-3 rounded-lg border border-rose-100">
-                      <div className="flex items-center gap-2">
-                        <AlertCircle size={16} />
-                        <span className="font-medium">Authentication Error</span>
-                      </div>
-                      <p className="text-xs opacity-90">{authError}</p>
-                    </div>
+                    <Alert variant="destructive" className="mb-6">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Authentication Error</AlertTitle>
+                      <AlertDescription>{authError}</AlertDescription>
+                    </Alert>
                   )}
                   
                   <Button type="submit" className="w-full gap-2" disabled={isAuthLoading}>
@@ -262,10 +262,11 @@ export default function App() {
                   </div>
                   
                   {authError && (
-                    <div className="flex items-center gap-2 text-sm text-rose-600 bg-rose-50 p-3 rounded-lg">
-                      <AlertCircle size={16} />
-                      <span>{authError}</span>
-                    </div>
+                    <Alert variant="destructive" className="mb-6">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Registration Error</AlertTitle>
+                      <AlertDescription>{authError}</AlertDescription>
+                    </Alert>
                   )}
                   
                   <Button type="submit" className="w-full gap-2" disabled={isAuthLoading}>

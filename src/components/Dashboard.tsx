@@ -27,8 +27,17 @@ import {
   Sparkles
 } from 'lucide-react';
 import { format, parseISO, startOfWeek, endOfWeek, subDays } from 'date-fns';
-import { getCampaignInsights } from '../lib/gemini';
-import { Button } from './ui/button';
+import { getCampaignInsights } from '@/lib/gemini';
+import { Button } from '@/components/ui/button.tsx';
+import { Badge } from '@/components/ui/badge.tsx';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table.tsx';
 
 interface DashboardProps {
   user: UserProfile;
@@ -284,57 +293,58 @@ export default function Dashboard({ user }: DashboardProps) {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="text-xs text-zinc-500 uppercase bg-zinc-50 border-y border-zinc-100">
-                <tr>
-                  <th className="px-6 py-4 font-semibold">Date</th>
-                  <th className="px-6 py-4 font-semibold">Campaign</th>
-                  <th className="px-6 py-4 font-semibold">Employee</th>
-                  <th className="px-6 py-4 font-semibold text-right">Spend</th>
-                  <th className="px-6 py-4 font-semibold text-right">Confirmed</th>
-                  <th className="px-6 py-4 font-semibold text-right">Canceled</th>
-                  <th className="px-6 py-4 font-semibold text-right">Score</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100">
-                {reports.slice(0, 10).map((report) => (
-                  <tr key={report.id} className="hover:bg-zinc-50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-zinc-900">
-                      {format(parseISO(report.campaignDate), 'MMM dd, yyyy')}
-                    </td>
-                    <td className="px-6 py-4 text-zinc-600">{report.campaignName}</td>
-                    <td className="px-6 py-4 text-zinc-600">{report.employeeName}</td>
-                    <td className="px-6 py-4 text-right font-mono text-zinc-900">
-                      ${report.totalSpend.toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 text-right text-emerald-600 font-medium">
-                      {report.confirmed}
-                    </td>
-                    <td className="px-6 py-4 text-right text-rose-600 font-medium">
-                      {report.canceled}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${
-                        report.performanceScore >= 80 ? 'bg-emerald-100 text-emerald-700' :
-                        report.performanceScore >= 50 ? 'bg-amber-100 text-amber-700' :
-                        'bg-rose-100 text-rose-700'
-                      }`}>
-                        {report.performanceScore.toFixed(0)}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-                {reports.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-zinc-400">
-                      No reports found. Start by submitting a weekly report.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="px-6 py-4">Date</TableHead>
+                <TableHead className="px-6 py-4">Campaign</TableHead>
+                <TableHead className="px-6 py-4">Employee</TableHead>
+                <TableHead className="px-6 py-4 text-right">Spend</TableHead>
+                <TableHead className="px-6 py-4 text-right">Confirmed</TableHead>
+                <TableHead className="px-6 py-4 text-right">Canceled</TableHead>
+                <TableHead className="px-6 py-4 text-right">Score</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {reports.slice(0, 10).map((report) => (
+                <TableRow key={report.id} className="hover:bg-zinc-50 transition-colors">
+                  <TableCell className="px-6 py-4 font-medium text-zinc-900">
+                    {format(parseISO(report.campaignDate), 'MMM dd, yyyy')}
+                  </TableCell>
+                  <TableCell className="px-6 py-4 text-zinc-600">{report.campaignName}</TableCell>
+                  <TableCell className="px-6 py-4 text-zinc-600">{report.employeeName}</TableCell>
+                  <TableCell className="px-6 py-4 text-right font-mono text-zinc-900">
+                    ${report.totalSpend.toLocaleString()}
+                  </TableCell>
+                  <TableCell className="px-6 py-4 text-right text-emerald-600 font-medium">
+                    {report.confirmed}
+                  </TableCell>
+                  <TableCell className="px-6 py-4 text-right text-rose-600 font-medium">
+                    {report.canceled}
+                  </TableCell>
+                  <TableCell className="px-6 py-4 text-right">
+                    <Badge 
+                      variant={
+                        report.performanceScore >= 80 ? 'default' :
+                        report.performanceScore >= 50 ? 'secondary' :
+                        'destructive'
+                      }
+                      className="text-[10px] font-bold uppercase"
+                    >
+                      {report.performanceScore.toFixed(0)}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {reports.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} className="px-6 py-12 text-center text-zinc-400">
+                    No reports found. Start by submitting a weekly report.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>

@@ -5,6 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button.tsx';
 import { Input } from '@/components/ui/input.tsx';
 import { Label } from '@/components/ui/label.tsx';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table.tsx';
 import { Plus, Trash2, Store as StoreIcon, Calendar } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
@@ -119,54 +127,52 @@ export default function StoreManagement({ user }: StoreManagementProps) {
             <CardDescription>A list of all client stores currently managed by your agency.</CardDescription>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="text-xs text-zinc-500 uppercase bg-zinc-50 border-y border-zinc-100">
-                  <tr>
-                    <th className="px-6 py-4 font-semibold">Store Name</th>
-                    <th className="px-6 py-4 font-semibold">Created Date</th>
-                    <th className="px-6 py-4 font-semibold text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-100">
-                  {stores.map((store) => (
-                    <tr key={store.id} className="hover:bg-zinc-50 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 rounded-lg bg-zinc-100 flex items-center justify-center text-zinc-600">
-                            <StoreIcon size={16} />
-                          </div>
-                          <span className="font-medium text-zinc-900">{store.name}</span>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="px-6 py-4">Store Name</TableHead>
+                  <TableHead className="px-6 py-4">Created Date</TableHead>
+                  <TableHead className="px-6 py-4 text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {stores.map((store) => (
+                  <TableRow key={store.id} className="hover:bg-zinc-50 transition-colors">
+                    <TableCell className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-lg bg-zinc-100 flex items-center justify-center text-zinc-600">
+                          <StoreIcon size={16} />
                         </div>
-                      </td>
-                      <td className="px-6 py-4 text-zinc-500">
-                        <div className="flex items-center gap-2">
-                          <Calendar size={14} />
-                          {format(parseISO(store.createdAt), 'MMM dd, yyyy')}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="text-zinc-400 hover:text-red-600 hover:bg-red-50"
-                          onClick={() => handleDeleteStore(store.id)}
-                        >
-                          <Trash2 size={16} />
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                  {stores.length === 0 && !loading && (
-                    <tr>
-                      <td colSpan={3} className="px-6 py-12 text-center text-zinc-400">
-                        No stores found. Create your first store to get started.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                        <span className="font-medium text-zinc-900">{store.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-6 py-4 text-zinc-500">
+                      <div className="flex items-center gap-2">
+                        <Calendar size={14} />
+                        {format(parseISO(store.createdAt), 'MMM dd, yyyy')}
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-6 py-4 text-right">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="text-zinc-400 hover:text-red-600 hover:bg-red-50"
+                        onClick={() => handleDeleteStore(store.id)}
+                      >
+                        <Trash2 size={16} />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {stores.length === 0 && !loading && (
+                  <TableRow>
+                    <TableCell colSpan={3} className="px-6 py-12 text-center text-zinc-400">
+                      No stores found. Create your first store to get started.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       </div>
