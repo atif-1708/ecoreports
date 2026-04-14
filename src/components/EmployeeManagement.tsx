@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
-import { UserProfile, Store, UserRole } from '../types';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
+import { supabase } from '@/lib/supabase';
+import { UserProfile, Store, UserRole } from '@/types';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card.tsx';
+import { Button } from '@/components/ui/button.tsx';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select.tsx';
+import { Label } from '@/components/ui/label.tsx';
 import { Users, Mail, Shield, Store as StoreIcon } from 'lucide-react';
 
 interface EmployeeManagementProps {

@@ -4,19 +4,19 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { supabase } from './lib/supabase';
-import { UserProfile } from './types';
+import { supabase } from '@/lib/supabase';
+import { UserProfile } from '@/types';
 import Dashboard from '@/components/Dashboard';
 import StoreManagement from '@/components/StoreManagement';
 import EmployeeManagement from '@/components/EmployeeManagement';
 import ReportForm from '@/components/ReportForm';
 import Layout from '@/components/Layout';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button.tsx';
+import { Input } from '@/components/ui/input.tsx';
+import { Label } from '@/components/ui/label.tsx';
 import { LayoutDashboard, LogIn, UserPlus, AlertCircle, Loader2 } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.tsx';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs.tsx';
 
 export default function App() {
   const [user, setUser] = useState<UserProfile | null>(null);
