@@ -249,75 +249,111 @@ export default function App() {
 
   if (!user) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-50 p-4">
-        <div className="mb-8 flex h-16 w-16 items-center justify-center rounded-2xl bg-zinc-900 text-white shadow-lg">
-          <LayoutDashboard size={32} />
+      <div className="flex min-h-screen bg-zinc-50">
+        {/* Left Side - Visual */}
+        <div className="hidden lg:flex lg:w-1/2 bg-zinc-950 relative overflow-hidden items-center justify-center p-20">
+          <div className="absolute inset-0 bg-gradient-to-br from-brand-600/20 to-transparent"></div>
+          <div className="absolute top-[-10%] right-[-10%] w-[60%] h-[60%] bg-brand-500/10 blur-[120px] rounded-full"></div>
+          <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-500/10 blur-[100px] rounded-full"></div>
+          
+          <div className="relative z-10 space-y-12 max-w-xl">
+            <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-brand-500 text-white shadow-2xl shadow-brand-500/20">
+              <LayoutDashboard size={40} />
+            </div>
+            <div className="space-y-6">
+              <h1 className="text-7xl font-black text-white tracking-tighter leading-[0.9]">
+                Performance <br />
+                <span className="text-brand-400">Intelligence.</span>
+              </h1>
+              <p className="text-zinc-400 text-xl font-medium leading-relaxed">
+                The ultimate command center for modern digital agencies. Track, analyze, and optimize your campaign performance with AI-driven insights.
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-8 pt-8 border-t border-white/10">
+              <div className="space-y-1">
+                <p className="text-3xl font-black text-white tracking-tighter">99.9%</p>
+                <p className="text-sm font-bold text-zinc-500 uppercase tracking-widest">Data Accuracy</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-3xl font-black text-white tracking-tighter">24/7</p>
+                <p className="text-sm font-bold text-zinc-500 uppercase tracking-widest">Real-time Sync</p>
+              </div>
+            </div>
+          </div>
         </div>
-        
-        <Card className="w-full max-w-md border-none shadow-xl bg-white">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold text-zinc-900">AdMetric SaaS</CardTitle>
-            <CardDescription>
-              Sign in to manage your agency's campaign performance.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="login" className="w-full">
-              <TabsList className="grid w-full grid-cols-1 mb-6">
-                <TabsTrigger value="login">Login</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="login">
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="login-email">Email</Label>
-                    <Input 
-                      id="login-email" 
-                      type="email" 
-                      placeholder="admin@admetric.com" 
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required 
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="login-password">Password</Label>
-                    <Input 
-                      id="login-password" 
-                      type="password" 
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required 
-                    />
-                  </div>
-                  
-                  {authError && (
-                    <Alert variant="destructive" className="mb-6">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertTitle>Authentication Error</AlertTitle>
-                      <AlertDescription>{authError}</AlertDescription>
-                    </Alert>
-                  )}
-                  
-                  <Button type="submit" className="w-full gap-2" disabled={isAuthLoading}>
-                    {isAuthLoading ? <Loader2 className="animate-spin" size={18} /> : <LogIn size={18} />}
-                    Sign In
-                  </Button>
-                </form>
-                <div className="mt-6 p-4 bg-zinc-50 rounded-lg border border-zinc-100">
-                  <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Supabase Migration</p>
-                  <p className="text-sm text-zinc-600">Please ensure your Supabase project is configured with the following tables:</p>
-                  <ul className="text-xs text-zinc-500 mt-2 list-disc list-inside space-y-1">
-                    <li>profiles (uid, email, name, role, storeId, createdAt)</li>
-                    <li>stores (id, name, ownerId, createdAt)</li>
-                    <li>store_assignments (id, employeeId, storeId, createdAt)</li>
-                    <li>reports (id, storeId, employeeId, employeeName, ...)</li>
-                  </ul>
+
+        {/* Right Side - Form */}
+        <div className="w-full lg:w-1/2 flex items-center justify-center p-8 md:p-20">
+          <div className="w-full max-w-md space-y-12">
+            <div className="space-y-4">
+              <div className="lg:hidden flex h-12 w-12 items-center justify-center rounded-2xl bg-zinc-900 text-white shadow-lg mb-8">
+                <LayoutDashboard size={24} />
+              </div>
+              <h2 className="text-4xl font-black tracking-tighter text-zinc-900">Welcome Back</h2>
+              <p className="text-zinc-500 font-medium text-lg">Enter your credentials to access your dashboard.</p>
+            </div>
+
+            <form onSubmit={handleLogin} className="space-y-8">
+              <div className="space-y-6">
+                <div className="space-y-3">
+                  <Label htmlFor="login-email" className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Email Address</Label>
+                  <Input 
+                    id="login-email" 
+                    type="email" 
+                    placeholder="admin@admetric.com" 
+                    className="h-14 rounded-2xl border-zinc-200 bg-white focus:ring-brand-500 font-bold text-lg px-6"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required 
+                  />
                 </div>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="login-password" className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Password</Label>
+                    <button type="button" className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-600 hover:text-brand-700">Forgot Password?</button>
+                  </div>
+                  <Input 
+                    id="login-password" 
+                    type="password" 
+                    placeholder="••••••••"
+                    className="h-14 rounded-2xl border-zinc-200 bg-white focus:ring-brand-500 font-bold text-lg px-6"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required 
+                  />
+                </div>
+              </div>
+
+              {authError && (
+                <Alert variant="destructive" className="rounded-3xl border-none bg-rose-50 text-rose-900 p-6 shadow-lg shadow-rose-500/10">
+                  <AlertCircle className="h-6 w-6 text-rose-600" />
+                  <div className="ml-2">
+                    <AlertTitle className="font-black text-lg">Authentication Error</AlertTitle>
+                    <AlertDescription className="font-medium opacity-80">{authError}</AlertDescription>
+                  </div>
+                </Alert>
+              )}
+
+              <Button type="submit" className="w-full h-16 rounded-2xl bg-zinc-900 hover:bg-zinc-800 text-white text-lg font-black shadow-2xl shadow-zinc-900/20 transition-all active:scale-[0.98] gap-3" disabled={isAuthLoading}>
+                {isAuthLoading ? <Loader2 className="animate-spin" size={24} /> : <LogIn size={24} />}
+                Sign In to AdMetric
+              </Button>
+            </form>
+
+            <div className="pt-12 border-t border-zinc-100">
+              <div className="flex items-center gap-4 p-6 bg-zinc-50 rounded-[32px] border border-zinc-100">
+                <div className="h-12 w-12 rounded-2xl bg-white flex items-center justify-center text-zinc-400 shadow-sm">
+                  <RefreshCw size={24} />
+                </div>
+                <div>
+                  <p className="text-xs font-black text-zinc-900 uppercase tracking-widest">System Status</p>
+                  <p className="text-sm text-zinc-500 font-medium">All systems operational. Data sync active.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

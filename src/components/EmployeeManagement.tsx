@@ -15,6 +15,7 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table.tsx';
+import { cn } from '@/lib/utils';
 import { 
   Dialog, 
   DialogContent, 
@@ -259,22 +260,26 @@ export default function EmployeeManagement({ user }: EmployeeManagementProps) {
   };
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-zinc-900">Employee Management</h1>
-          <p className="text-zinc-500">Manage team roles and assign employees to client stores.</p>
+    <div className="space-y-10 pb-12">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-brand-600 font-bold text-[10px] uppercase tracking-[0.2em]">
+            <Users size={14} />
+            <span>Team Administration</span>
+          </div>
+          <h1 className="text-5xl font-black tracking-tighter text-zinc-900">Employee Management</h1>
+          <p className="text-zinc-500 max-w-2xl text-lg font-medium">Manage team roles and assign employees to client stores.</p>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
           <Button 
             variant="outline" 
             size="icon" 
+            className="rounded-2xl h-12 w-12 border-zinc-200 bg-white hover:bg-zinc-50 transition-all"
             onClick={() => fetchData()} 
             disabled={loading}
-            title="Refresh Data"
           >
-            <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
+            <RefreshCw size={20} className={loading ? "animate-spin" : ""} />
           </Button>
           
           {user.role === 'admin' && (
@@ -287,216 +292,249 @@ export default function EmployeeManagement({ user }: EmployeeManagementProps) {
               }
             }}>
               <DialogTrigger asChild>
-                <Button className="gap-2"><UserPlus size={18} /> Add Employee</Button>
+                <Button className="h-12 px-8 rounded-2xl bg-zinc-900 text-white hover:bg-zinc-800 shadow-lg shadow-zinc-900/20 gap-2 font-bold">
+                  <UserPlus size={20} /> Add New Employee
+                </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Add New Employee</DialogTitle>
-                <DialogDescription>
-                  Create credentials for a new team member. They will use these to log in.
-                </DialogDescription>
-              </DialogHeader>
-              
-              {!generatedPassword ? (
-                <form onSubmit={handleAddEmployee} className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Full Name</Label>
-                    <Input 
-                      id="name" 
-                      placeholder="Jane Smith" 
-                      value={newEmpName}
-                      onChange={(e) => setNewEmpName(e.target.value)}
-                      required 
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email Address</Label>
-                    <Input 
-                      id="email" 
-                      type="email" 
-                      placeholder="jane@admetric.com" 
-                      value={newEmpEmail}
-                      onChange={(e) => setNewEmpEmail(e.target.value)}
-                      required 
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="role">Role</Label>
-                    <Select value={newEmpRole} onValueChange={(val) => setNewEmpRole(val as UserRole)}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="employee">Employee</SelectItem>
-                        <SelectItem value="manager">Manager</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <DialogFooter>
-                    <Button type="submit" className="w-full" disabled={isCreating}>
-                      {isCreating ? <Loader2 className="animate-spin mr-2" size={18} /> : null}
-                      Generate Credentials
-                    </Button>
-                  </DialogFooter>
-                </form>
-              ) : (
-                <div className="space-y-6 py-4">
-                  <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-lg">
-                    <p className="text-sm text-emerald-800 font-medium mb-1">Account Created Successfully!</p>
-                    <p className="text-xs text-emerald-600">Copy these details and send them to the employee.</p>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <div className="p-3 bg-zinc-50 rounded border border-zinc-200 font-mono text-sm break-all">
-                      <p><span className="text-zinc-400">Email:</span> {newEmpEmail}</p>
-                      <p><span className="text-zinc-400">Pass:</span> {generatedPassword}</p>
-                    </div>
-                    <Button 
-                      variant="outline" 
-                      className="w-full gap-2" 
-                      onClick={copyCredentials}
-                    >
-                      {copied ? <Check size={16} className="text-emerald-600" /> : <Copy size={16} />}
-                      {copied ? 'Copied!' : 'Copy Credentials'}
-                    </Button>
-                  </div>
-                  
-                  <DialogFooter>
-                    <Button variant="ghost" className="w-full" onClick={() => setIsAddDialogOpen(false)}>
-                      Close
-                    </Button>
-                  </DialogFooter>
+              <DialogContent className="sm:max-w-[450px] rounded-[32px] border-none shadow-2xl p-0 overflow-hidden">
+                <div className="p-8 bg-zinc-950 text-white">
+                  <DialogHeader>
+                    <DialogTitle className="text-2xl font-black tracking-tight text-white">Add Team Member</DialogTitle>
+                    <DialogDescription className="text-zinc-400 font-medium">
+                      Create secure credentials for a new team member.
+                    </DialogDescription>
+                  </DialogHeader>
                 </div>
-              )}
-            </DialogContent>
-          </Dialog>
-        )}
+                
+                <div className="p-8 bg-white">
+                  {!generatedPassword ? (
+                    <form onSubmit={handleAddEmployee} className="space-y-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="name" className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Full Name</Label>
+                        <Input 
+                          id="name" 
+                          placeholder="Jane Smith" 
+                          className="h-12 rounded-xl border-zinc-200 bg-zinc-50 focus:ring-brand-500"
+                          value={newEmpName}
+                          onChange={(e) => setNewEmpName(e.target.value)}
+                          required 
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="email" className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Email Address</Label>
+                        <Input 
+                          id="email" 
+                          type="email" 
+                          placeholder="jane@admetric.com" 
+                          className="h-12 rounded-xl border-zinc-200 bg-zinc-50 focus:ring-brand-500"
+                          value={newEmpEmail}
+                          onChange={(e) => setNewEmpEmail(e.target.value)}
+                          required 
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="role" className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Access Level</Label>
+                        <Select value={newEmpRole} onValueChange={(val) => setNewEmpRole(val as UserRole)}>
+                          <SelectTrigger className="h-12 rounded-xl border-zinc-200 bg-zinc-50">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl border-zinc-200">
+                            <SelectItem value="employee">Employee</SelectItem>
+                            <SelectItem value="manager">Manager</SelectItem>
+                            <SelectItem value="admin">Admin</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <DialogFooter className="pt-4">
+                        <Button type="submit" className="w-full h-12 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-bold shadow-lg shadow-brand-500/20" disabled={isCreating}>
+                          {isCreating ? <Loader2 className="animate-spin mr-2" size={18} /> : null}
+                          Generate Secure Credentials
+                        </Button>
+                      </DialogFooter>
+                    </form>
+                  ) : (
+                    <div className="space-y-8">
+                      <div className="p-6 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-start gap-4">
+                        <div className="p-2 bg-emerald-500 text-white rounded-lg">
+                          <Check size={20} />
+                        </div>
+                        <div>
+                          <p className="text-sm text-emerald-900 font-bold">Account Provisioned</p>
+                          <p className="text-xs text-emerald-700 font-medium mt-1">Copy these details and send them securely to the employee.</p>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div className="p-6 bg-zinc-950 rounded-2xl border border-zinc-800 font-mono text-sm relative group">
+                          <div className="space-y-2">
+                            <p className="flex items-center gap-3">
+                              <span className="text-zinc-500 w-12 font-sans text-[10px] uppercase font-black tracking-widest">Email</span>
+                              <span className="text-white font-bold">{newEmpEmail}</span>
+                            </p>
+                            <p className="flex items-center gap-3">
+                              <span className="text-zinc-500 w-12 font-sans text-[10px] uppercase font-black tracking-widest">Pass</span>
+                              <span className="text-brand-400 font-bold">{generatedPassword}</span>
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <Button 
+                          className={cn(
+                            "w-full h-14 rounded-2xl gap-3 font-bold transition-all duration-300",
+                            copied ? "bg-emerald-500 text-white" : "bg-zinc-900 text-white hover:bg-zinc-800"
+                          )}
+                          onClick={copyCredentials}
+                        >
+                          {copied ? <Check size={20} /> : <Copy size={20} />}
+                          {copied ? 'Credentials Copied!' : 'Copy to Clipboard'}
+                        </Button>
+                      </div>
+                      
+                      <Button variant="ghost" className="w-full h-12 rounded-xl text-zinc-500 font-bold" onClick={() => setIsAddDialogOpen(false)}>
+                        Finish & Close
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
       </div>
 
       {tableError && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Database Error</AlertTitle>
-          <AlertDescription>{tableError}</AlertDescription>
+        <Alert variant="destructive" className="rounded-[32px] border-none bg-rose-50 text-rose-900 p-6">
+          <AlertCircle className="h-5 w-5 text-rose-600" />
+          <AlertTitle className="font-black text-lg">System Configuration Required</AlertTitle>
+          <AlertDescription className="font-medium opacity-80">{tableError}</AlertDescription>
         </Alert>
       )}
 
-      <Card className="border-none shadow-sm bg-white overflow-hidden">
-        <CardHeader>
-          <CardTitle>Team Members</CardTitle>
-          <CardDescription>A list of all employees and their current access levels.</CardDescription>
+      <Card className="border-none shadow-sm bg-white rounded-[40px] overflow-hidden">
+        <CardHeader className="p-10 pb-6">
+          <CardTitle className="text-3xl font-black tracking-tight">Team Directory</CardTitle>
+          <CardDescription className="text-zinc-500 font-medium">A comprehensive list of all employees and their current access levels.</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="px-6 py-4">Name & Email</TableHead>
-                <TableHead className="px-6 py-4">Current Role</TableHead>
-                <TableHead className="px-6 py-4">Assigned Store</TableHead>
-                <TableHead className="px-6 py-4 text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {employees.map((emp) => (
-                <TableRow key={emp.uid} className="hover:bg-zinc-50 transition-colors">
-                  <TableCell className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-600 font-bold">
-                        {emp.name.charAt(0)}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-zinc-900">{emp.name}</p>
-                          {emp.uid === user.uid && (
-                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">You</Badge>
-                          )}
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader className="bg-zinc-50/50">
+                <TableRow className="hover:bg-transparent border-zinc-100">
+                  <TableHead className="px-10 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Name & Identity</TableHead>
+                  <TableHead className="px-10 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Access Role</TableHead>
+                  <TableHead className="px-10 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Store Assignments</TableHead>
+                  <TableHead className="px-10 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {employees.map((emp) => (
+                  <TableRow key={emp.uid} className="hover:bg-zinc-50/50 transition-colors border-zinc-100">
+                    <TableCell className="px-10 py-8">
+                      <div className="flex items-center gap-4">
+                        <div className="h-12 w-12 rounded-2xl bg-zinc-100 flex items-center justify-center text-zinc-900 font-black text-lg border border-zinc-200 shadow-sm">
+                          {emp.name.charAt(0)}
                         </div>
-                        <p className="text-xs text-zinc-500 flex items-center gap-1">
-                          <Mail size={12} />
-                          {emp.email}
-                        </p>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="px-6 py-4">
-                    <Select 
-                      value={emp.role} 
-                      onValueChange={(val) => handleUpdateRole(emp.uid, val as UserRole)}
-                      disabled={user.role !== 'admin' && emp.uid !== user.uid}
-                    >
-                      <SelectTrigger className="w-[140px] h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="admin">Admin</SelectItem>
-                        <SelectItem value="manager">Manager</SelectItem>
-                        <SelectItem value="employee">Employee</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                  <TableCell className="px-6 py-4">
-                    <PopoverUI>
-                      <PopoverTriggerUI asChild>
-                        <Button variant="outline" size="sm" className="w-[200px] justify-between h-9">
-                          <span className="truncate">
-                            {assignments.filter(a => a.employeeId === emp.uid).length > 0
-                              ? `${assignments.filter(a => a.employeeId === emp.uid).length} Stores Assigned`
-                              : "No Stores Assigned"}
-                          </span>
-                          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </PopoverTriggerUI>
-                      <PopoverContentUI className="w-[250px] p-0" align="start">
-                        <div className="p-3 border-b border-zinc-100">
-                          <p className="text-xs font-semibold text-zinc-500 uppercase">Assign Stores</p>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-black text-zinc-900 text-lg tracking-tight">{emp.name}</p>
+                            {emp.uid === user.uid && (
+                              <Badge className="bg-brand-500 text-white text-[10px] font-black px-2 py-0.5 rounded-lg">YOU</Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-zinc-500 font-medium flex items-center gap-1.5 mt-0.5">
+                            <Mail size={14} className="text-zinc-400" />
+                            {emp.email}
+                          </p>
                         </div>
-                        <div className="max-h-[300px] overflow-y-auto p-2 space-y-1">
-                          {stores.map(store => {
-                            const isAssigned = assignments.some(a => a.employeeId === emp.uid && a.storeId === store.id);
-                            return (
-                              <div 
-                                key={store.id} 
-                                className="flex items-center space-x-2 p-2 hover:bg-zinc-50 rounded-md"
-                              >
-                                <Checkbox 
-                                  id={`store-${store.id}-${emp.uid}`} 
-                                  checked={isAssigned}
-                                  onCheckedChange={() => handleToggleAssignment(emp.uid, store.id, isAssigned)}
-                                />
-                                <Label 
-                                  htmlFor={`store-${store.id}-${emp.uid}`}
-                                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-10 py-8">
+                      <Select 
+                        value={emp.role} 
+                        onValueChange={(val) => handleUpdateRole(emp.uid, val as UserRole)}
+                        disabled={user.role !== 'admin' && emp.uid !== user.uid}
+                      >
+                        <SelectTrigger className="w-[160px] h-11 rounded-xl border-zinc-200 bg-white font-bold text-zinc-700">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl border-zinc-200">
+                          <SelectItem value="admin" className="font-bold">Administrator</SelectItem>
+                          <SelectItem value="manager" className="font-bold">Manager</SelectItem>
+                          <SelectItem value="employee" className="font-bold">Employee</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell className="px-10 py-8">
+                      <PopoverUI>
+                        <PopoverTriggerUI asChild>
+                          <Button variant="outline" className="w-[220px] justify-between h-11 rounded-xl border-zinc-200 bg-white hover:bg-zinc-50 font-bold text-zinc-700">
+                            <span className="truncate">
+                              {assignments.filter(a => a.employeeId === emp.uid).length > 0
+                                ? `${assignments.filter(a => a.employeeId === emp.uid).length} Stores Assigned`
+                                : "No Stores Assigned"}
+                            </span>
+                            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTriggerUI>
+                        <PopoverContentUI className="w-[280px] p-0 rounded-2xl border-zinc-200 shadow-2xl overflow-hidden" align="start">
+                          <div className="p-4 bg-zinc-50 border-b border-zinc-100">
+                            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Assign Stores</p>
+                          </div>
+                          <div className="max-h-[300px] overflow-y-auto p-3 space-y-1">
+                            {stores.map(store => {
+                              const isAssigned = assignments.some(a => a.employeeId === emp.uid && a.storeId === store.id);
+                              return (
+                                <div 
+                                  key={store.id} 
+                                  className="flex items-center space-x-3 p-3 hover:bg-zinc-50 rounded-xl transition-colors cursor-pointer group"
+                                  onClick={() => handleToggleAssignment(emp.uid, store.id, isAssigned)}
                                 >
-                                  {store.name}
-                                </Label>
+                                  <Checkbox 
+                                    id={`store-${store.id}-${emp.uid}`} 
+                                    checked={isAssigned}
+                                    className="rounded-lg border-zinc-300 data-[state=checked]:bg-brand-500 data-[state=checked]:border-brand-500"
+                                    onCheckedChange={() => {}} // Handled by div click
+                                  />
+                                  <Label 
+                                    htmlFor={`store-${store.id}-${emp.uid}`}
+                                    className="text-sm font-bold text-zinc-600 group-hover:text-zinc-900 cursor-pointer flex-1"
+                                  >
+                                    {store.name}
+                                  </Label>
+                                </div>
+                              );
+                            })}
+                            {stores.length === 0 && (
+                              <div className="p-8 text-center">
+                                <p className="text-xs text-zinc-400 font-bold">No stores available.</p>
                               </div>
-                            );
-                          })}
-                          {stores.length === 0 && (
-                            <p className="text-xs text-zinc-400 p-2 text-center">No stores available.</p>
-                          )}
+                            )}
+                          </div>
+                        </PopoverContentUI>
+                      </PopoverUI>
+                    </TableCell>
+                    <TableCell className="px-10 py-8 text-right">
+                      <Button variant="ghost" className="h-10 px-4 rounded-xl text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 font-bold" disabled>
+                        Details
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {employees.length === 0 && !loading && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="px-10 py-24 text-center">
+                      <div className="flex flex-col items-center justify-center space-y-4">
+                        <div className="p-6 bg-zinc-50 rounded-full text-zinc-300">
+                          <Users size={48} />
                         </div>
-                      </PopoverContentUI>
-                    </PopoverUI>
-                  </TableCell>
-                  <TableCell className="px-6 py-4 text-right">
-                    <Button variant="ghost" size="sm" disabled>
-                      Manage
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {employees.length === 0 && !loading && (
-                <TableRow>
-                  <TableCell colSpan={4} className="px-6 py-12 text-center text-zinc-400">
-                    No team members found.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                        <p className="text-zinc-400 font-bold text-lg">No team members found.</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>
