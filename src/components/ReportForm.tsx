@@ -47,7 +47,8 @@ export default function ReportForm({ user }: ReportFormProps) {
     purchases: 0,
     costPerPurchase: 0,
     confirmed: 0,
-    canceled: 0
+    canceled: 0,
+    roas: 0
   });
 
   useEffect(() => {
@@ -89,9 +90,21 @@ export default function ReportForm({ user }: ReportFormProps) {
     try {
       if (!formData.storeId) throw new Error('Please select a store');
 
+      const selectedStore = stores.find(s => s.id === formData.storeId);
+      const aov = selectedStore?.averageOrderValue || 100;
+
       const totalSpend = formData.purchases * formData.costPerPurchase;
-      const revenue = formData.confirmed * formData.costPerPurchase * 3; // Mock revenue calculation
-      const roas = totalSpend > 0 ? revenue / totalSpend : 0;
+      
+      let revenue = 0;
+      let roas = formData.roas;
+
+      if (roas > 0) {
+        revenue = roas * totalSpend;
+      } else {
+        revenue = formData.confirmed * aov;
+        roas = totalSpend > 0 ? revenue / totalSpend : 0;
+      }
+
       const confirmationRate = formData.purchases > 0 ? (formData.confirmed / formData.purchases) * 100 : 0;
       const cancellationRate = formData.purchases > 0 ? (formData.canceled / formData.purchases) * 100 : 0;
       
@@ -146,13 +159,29 @@ export default function ReportForm({ user }: ReportFormProps) {
 
     try {
       const reports = await parseReportExcel(file);
+      const selectedStore = stores.find(s => s.id === formData.storeId);
+      const aov = selectedStore?.averageOrderValue || 100;
       
       const reportsToInsert = reports.map(report => {
-        const totalSpend = report.purchases * report.costPerPurchase;
-        const revenue = report.confirmed * report.costPerPurchase * 3;
-        const roas = totalSpend > 0 ? revenue / totalSpend : 0;
-        const confirmationRate = report.purchases > 0 ? (report.confirmed / report.purchases) * 100 : 0;
-        const cancellationRate = report.purchases > 0 ? (report.canceled / report.purchases) * 100 : 0;
+        const purchases = report.purchases || 0;
+        const cpp = report.costPerPurchase || 0;
+        const confirmed = report.confirmed || 0;
+        const excelRoas = report.roas || 0;
+
+        const totalSpend = purchases * cpp;
+        
+        let revenue = 0;
+        let roas = excelRoas;
+
+        if (roas > 0) {
+          revenue = roas * totalSpend;
+        } else {
+          revenue = confirmed * aov;
+          roas = totalSpend > 0 ? revenue / totalSpend : 0;
+        }
+
+        const confirmationRate = purchases > 0 ? (confirmed / purchases) * 100 : 0;
+        const cancellationRate = purchases > 0 ? ((report.canceled || 0) / purchases) * 100 : 0;
         const performanceScore = Math.min(100, (roas * 20) + (confirmationRate * 0.4));
 
         return {
@@ -325,6 +354,20 @@ export default function ReportForm({ user }: ReportFormProps) {
                       onChange={(e) => setFormData(prev => ({ ...prev, canceled: Number(e.target.value) }))}
                       required 
                     />
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label htmlFor="roas" className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Campaign ROAS (Optional)</Label>
+                    <Input 
+                      id="roas" 
+                      type="number" 
+                      step="0.01"
+                      placeholder="e.g. 3.5"
+                      className="h-14 rounded-2xl border-zinc-200 bg-zinc-50 focus:ring-brand-500 font-bold"
+                      value={formData.roas}
+                      onChange={(e) => setFormData(prev => ({ ...prev, roas: Number(e.target.value) }))}
+                    />
+                    <p className="text-[10px] text-zinc-400 font-medium italic">If provided, revenue will be calculated as ROAS × Spend.</p>
                   </div>
                 </div>
 

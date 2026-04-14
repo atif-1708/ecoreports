@@ -21,6 +21,7 @@ export interface Store {
   id: string;
   name: string;
   ownerId: string;
+  averageOrderValue: number;
   createdAt: string;
 }
 
@@ -38,6 +39,8 @@ export interface CampaignReport {
   pending: number;
   // Calculated fields
   totalSpend: number;
+  revenue: number;
+  roas: number;
   netOrders: number;
   cancellationRate: number;
   confirmationRate: number;

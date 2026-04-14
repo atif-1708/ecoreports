@@ -21,6 +21,7 @@ export default function StoreManagement() {
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newStoreName, setNewStoreName] = useState('');
+  const [newStoreAov, setNewStoreAov] = useState('100');
   const [isCreating, setIsCreating] = useState(false);
 
   const fetchStores = async () => {
@@ -52,11 +53,15 @@ export default function StoreManagement() {
     try {
       const { error } = await supabase
         .from('stores')
-        .insert([{ name: newStoreName.trim() }]);
+        .insert([{ 
+          name: newStoreName.trim(),
+          average_order_value: Number(newStoreAov)
+        }]);
 
       if (error) throw error;
       
       setNewStoreName('');
+      setNewStoreAov('100');
       setIsAddDialogOpen(false);
       fetchStores();
     } catch (error) {
@@ -126,6 +131,19 @@ export default function StoreManagement() {
                       onChange={(e) => setNewStoreName(e.target.value)}
                       required 
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="aov" className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Average Order Value ($)</Label>
+                    <Input 
+                      id="aov" 
+                      type="number"
+                      placeholder="100" 
+                      className="h-12 rounded-xl border-zinc-200 bg-zinc-50 focus:ring-brand-500"
+                      value={newStoreAov}
+                      onChange={(e) => setNewStoreAov(e.target.value)}
+                      required 
+                    />
+                    <p className="text-[10px] text-zinc-400 font-medium">Used to calculate estimated revenue and ROAS.</p>
                   </div>
                   <DialogFooter className="pt-4">
                     <Button type="submit" className="w-full h-12 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-bold shadow-lg shadow-brand-500/20" disabled={isCreating}>

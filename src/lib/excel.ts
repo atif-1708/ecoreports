@@ -3,9 +3,9 @@ import { CampaignReport } from '../types';
 
 export const generateSampleExcel = () => {
   const data = [
-    ['Date', 'Campaign Name', 'Purchases', 'Cost Per Purchase', 'Confirmed', 'Canceled', 'Pending'],
-    ['2024-04-01', 'Spring Sale 2024', 150, 12.5, 120, 10, 20],
-    ['2024-04-01', 'New Arrivals FB', 85, 15.2, 70, 5, 10],
+    ['Date', 'Campaign Name', 'Purchases', 'Cost Per Purchase', 'Confirmed', 'Canceled', 'Pending', 'ROAS'],
+    ['2024-04-01', 'Spring Sale 2024', 150, 12.5, 120, 10, 20, 3.5],
+    ['2024-04-01', 'New Arrivals FB', 85, 15.2, 70, 5, 10, 2.8],
   ];
 
   const ws = XLSX.utils.aoa_to_sheet(data);
@@ -42,6 +42,7 @@ export const parseReportExcel = async (file: File): Promise<Partial<CampaignRepo
           const confirmed = Number(row['Confirmed']) || 0;
           const canceled = Number(row['Canceled']) || 0;
           const pending = Number(row['Pending']) || 0;
+          const roas = Number(row['ROAS']) || 0;
           const totalSpend = purchases * cpp;
 
           return {
@@ -52,6 +53,7 @@ export const parseReportExcel = async (file: File): Promise<Partial<CampaignRepo
             confirmed,
             canceled,
             pending,
+            roas,
             totalSpend,
             netOrders: confirmed,
             cancellationRate: purchases > 0 ? (canceled / purchases) * 100 : 0,
