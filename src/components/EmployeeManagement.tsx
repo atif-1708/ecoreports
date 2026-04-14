@@ -34,8 +34,11 @@ import {
   Check, 
   Loader2,
   ChevronDown,
-  X
+  X,
+  RefreshCw,
+  AlertCircle
 } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert.tsx';
 import { 
   Popover as PopoverUI, 
   PopoverContent as PopoverContentUI, 
@@ -53,6 +56,7 @@ export default function EmployeeManagement({ user }: EmployeeManagementProps) {
   const [stores, setStores] = useState<Store[]>([]);
   const [assignments, setAssignments] = useState<StoreAssignment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tableError, setTableError] = useState<string | null>(null);
   
   // Add Employee State
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -137,6 +141,7 @@ export default function EmployeeManagement({ user }: EmployeeManagementProps) {
 
   const fetchData = async () => {
     setLoading(true);
+    setTableError(null);
     try {
       // Fetch stores
       const { data: storesData, error: storesError } = await supabase
@@ -154,7 +159,9 @@ export default function EmployeeManagement({ user }: EmployeeManagementProps) {
       
       if (assignmentsError) {
         console.warn('Store assignments table might not exist yet:', assignmentsError);
-        // We'll continue even if this fails, just with empty assignments
+        if (assignmentsError.message.includes('does not exist')) {
+          setTableError("The 'store_assignments' table is missing in your database. Please create it to enable multi-store access.");
+        }
       } else {
         setAssignments(assignmentsData as StoreAssignment[]);
       }
@@ -186,6 +193,7 @@ export default function EmployeeManagement({ user }: EmployeeManagementProps) {
 
   const handleToggleAssignment = async (employeeId: string, storeId: string, isAssigned: boolean) => {
     try {
+      console.log(`Toggling assignment: emp=${employeeId}, store=${storeId}, currentlyAssigned=${isAssigned}`);
       if (isAssigned) {
         // Remove assignment
         const { error } = await supabase
@@ -193,7 +201,11 @@ export default function EmployeeManagement({ user }: EmployeeManagementProps) {
           .delete()
           .eq('employeeId', employeeId)
           .eq('storeId', storeId);
-        if (error) throw error;
+        if (error) {
+          console.error('Error removing assignment:', error);
+          alert(`Failed to remove assignment: ${error.message}`);
+          throw error;
+        }
       } else {
         // Add assignment
         const { error } = await supabase
@@ -203,9 +215,14 @@ export default function EmployeeManagement({ user }: EmployeeManagementProps) {
             storeId,
             createdAt: new Date().toISOString()
           }]);
-        if (error) throw error;
+        if (error) {
+          console.error('Error adding assignment:', error);
+          alert(`Failed to add assignment: ${error.message}. Make sure the 'store_assignments' table exists.`);
+          throw error;
+        }
       }
-      fetchData();
+      // Optimistically update local state or just re-fetch
+      await fetchData();
     } catch (error) {
       console.error('Error toggling store assignment:', error);
     }
@@ -249,17 +266,30 @@ export default function EmployeeManagement({ user }: EmployeeManagementProps) {
           <p className="text-zinc-500">Manage team roles and assign employees to client stores.</p>
         </div>
         
-        {user.role === 'admin' && (
-          <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
-            setIsAddDialogOpen(open);
-            if (!open) {
-              setGeneratedPassword('');
-              setNewEmpEmail('');
-              setNewEmpName('');
-            }
-          }}>
-            <DialogTrigger render={<Button className="gap-2"><UserPlus size={18} /> Add Employee</Button>} />
-            <DialogContent className="sm:max-w-[425px]">
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={() => fetchData()} 
+            disabled={loading}
+            title="Refresh Data"
+          >
+            <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
+          </Button>
+          
+          {user.role === 'admin' && (
+            <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
+              setIsAddDialogOpen(open);
+              if (!open) {
+                setGeneratedPassword('');
+                setNewEmpEmail('');
+                setNewEmpName('');
+              }
+            }}>
+              <DialogTrigger asChild>
+                <Button className="gap-2"><UserPlus size={18} /> Add Employee</Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
                 <DialogTitle>Add New Employee</DialogTitle>
                 <DialogDescription>
@@ -342,7 +372,16 @@ export default function EmployeeManagement({ user }: EmployeeManagementProps) {
             </DialogContent>
           </Dialog>
         )}
+        </div>
       </div>
+
+      {tableError && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Database Error</AlertTitle>
+          <AlertDescription>{tableError}</AlertDescription>
+        </Alert>
+      )}
 
       <Card className="border-none shadow-sm bg-white overflow-hidden">
         <CardHeader>
@@ -419,8 +458,7 @@ export default function EmployeeManagement({ user }: EmployeeManagementProps) {
                             return (
                               <div 
                                 key={store.id} 
-                                className="flex items-center space-x-2 p-2 hover:bg-zinc-50 rounded-md cursor-pointer"
-                                onClick={() => handleToggleAssignment(emp.uid, store.id, isAssigned)}
+                                className="flex items-center space-x-2 p-2 hover:bg-zinc-50 rounded-md"
                               >
                                 <Checkbox 
                                   id={`store-${store.id}-${emp.uid}`} 

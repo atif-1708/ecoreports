@@ -14,7 +14,14 @@ import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button.tsx';
 import { Input } from '@/components/ui/input.tsx';
 import { Label } from '@/components/ui/label.tsx';
-import { LayoutDashboard, LogIn, UserPlus, AlertCircle, Loader2 } from 'lucide-react';
+import { 
+  LayoutDashboard, 
+  LogIn, 
+  UserPlus, 
+  AlertCircle, 
+  Loader2,
+  RefreshCw
+} from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert.tsx';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.tsx';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs.tsx';
@@ -30,46 +37,51 @@ export default function App() {
   const [isAuthLoading, setIsAuthLoading] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
+
     const fetchProfile = async (userId: string, userEmail?: string, userName?: string) => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('uid', userId)
-        .single();
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('uid', userId)
+          .single();
 
-      if (error) {
-        // PGRST116 means "no rows found"
-        if (error.code === 'PGRST116' && userEmail) {
-          console.log('Profile not found for authenticated user, creating one...');
-          const newProfile: UserProfile = {
-            uid: userId,
-            email: userEmail,
-            name: userName || 'User',
-            role: (userEmail === 'atifnazir1708@gmail.com' || userEmail === 'admin@admetric.com') ? 'admin' : 'employee',
-            createdAt: new Date().toISOString(),
-          };
+        if (error) {
+          if (error.code === 'PGRST116' && userEmail) {
+            console.log('Profile not found for authenticated user, creating one...');
+            const newProfile: UserProfile = {
+              uid: userId,
+              email: userEmail,
+              name: userName || 'User',
+              role: (userEmail === 'atifnazir1708@gmail.com' || userEmail === 'admin@admetric.com') ? 'admin' : 'employee',
+              createdAt: new Date().toISOString(),
+            };
 
-          const { data: createdData, error: insertError } = await supabase
-            .from('profiles')
-            .insert([newProfile])
-            .select()
-            .single();
+            const { data: createdData, error: insertError } = await supabase
+              .from('profiles')
+              .insert([newProfile])
+              .select()
+              .single();
 
-          if (insertError) {
-            console.error('Error auto-creating profile:', insertError);
-            return null;
+            if (insertError) {
+              console.error('Error auto-creating profile:', insertError);
+              return null;
+            }
+            return createdData as UserProfile;
           }
-          return createdData as UserProfile;
+          console.error('Error fetching profile:', error);
+          return null;
         }
-        
-        console.error('Error fetching profile:', error);
+        return data as UserProfile;
+      } catch (err) {
+        console.error('Unexpected error in fetchProfile:', err);
         return null;
       }
-      return data as UserProfile;
     };
 
-    const setupAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+    const handleAuthChange = async (session: any) => {
+      if (!isMounted) return;
       
       if (session?.user) {
         const profile = await fetchProfile(
@@ -78,43 +90,65 @@ export default function App() {
           session.user.user_metadata?.full_name
         );
         
-        // Force admin role for the primary admin email if it's not set
-        if (profile && (session.user.email === 'atifnazir1708@gmail.com' || session.user.email === 'admin@admetric.com') && profile.role !== 'admin') {
-          const { data: updatedProfile } = await supabase
-            .from('profiles')
-            .update({ role: 'admin' })
-            .eq('uid', session.user.id)
-            .select()
-            .single();
-          
-          if (updatedProfile) {
-            setUser(updatedProfile as UserProfile);
+        if (profile && isMounted) {
+          // Force admin role for the primary admin email if it's not set
+          if ((session.user.email === 'atifnazir1708@gmail.com' || session.user.email === 'admin@admetric.com') && profile.role !== 'admin') {
+            const { data: updatedProfile } = await supabase
+              .from('profiles')
+              .update({ role: 'admin' })
+              .eq('uid', session.user.id)
+              .select()
+              .single();
+            
+            if (updatedProfile && isMounted) {
+              setUser(updatedProfile as UserProfile);
+            } else if (isMounted) {
+              setUser(profile);
+            }
           } else {
             setUser(profile);
           }
-        } else {
-          setUser(profile);
         }
+      } else if (isMounted) {
+        setUser(null);
       }
-      setLoading(false);
+      
+      if (isMounted) setLoading(false);
     };
 
-    setupAuth();
+    // Initial session check
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      handleAuthChange(session);
+    }).catch(err => {
+      console.error('Error getting session:', err);
+      if (isMounted) setLoading(false);
+    });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
-        const profile = await fetchProfile(
-          session.user.id, 
-          session.user.email, 
-          session.user.user_metadata?.full_name
-        );
-        setUser(profile);
+      console.log('Auth state change:', event);
+      if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'USER_UPDATED') {
+        handleAuthChange(session);
       } else if (event === 'SIGNED_OUT') {
-        setUser(null);
+        if (isMounted) {
+          setUser(null);
+          setLoading(false);
+        }
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Safety timeout for loading state
+    const timeout = setTimeout(() => {
+      if (loading && isMounted) {
+        console.warn('Auth loading timed out, forcing loading to false');
+        setLoading(false);
+      }
+    }, 10000);
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -195,8 +229,20 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-zinc-50">
+      <div className="flex h-screen flex-col items-center justify-center bg-zinc-50 gap-4">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-zinc-900 border-t-transparent"></div>
+        <p className="text-sm text-zinc-500 animate-pulse">Initializing AdMetric...</p>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="mt-4 text-zinc-400"
+          onClick={() => {
+            supabase.auth.signOut();
+            window.location.reload();
+          }}
+        >
+          Stuck? Reset Session
+        </Button>
       </div>
     );
   }

@@ -13,7 +13,7 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table.tsx';
-import { Plus, Trash2, Store as StoreIcon, Calendar } from 'lucide-react';
+import { Plus, Trash2, Store as StoreIcon, Calendar, RefreshCw } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
 interface StoreManagementProps {
@@ -101,6 +101,15 @@ export default function StoreManagement({ user }: StoreManagementProps) {
           <h1 className="text-3xl font-bold tracking-tight text-zinc-900">Store Management</h1>
           <p className="text-zinc-500">Create and manage client accounts and business stores.</p>
         </div>
+        <Button 
+          variant="outline" 
+          size="icon" 
+          onClick={() => fetchStores()} 
+          disabled={loading}
+          title="Refresh Data"
+        >
+          <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

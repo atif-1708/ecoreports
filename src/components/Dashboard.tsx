@@ -27,7 +27,8 @@ import {
   Sparkles,
   Search,
   Filter,
-  BarChart3
+  BarChart3,
+  RefreshCw
 } from 'lucide-react';
 import { Input } from '@/components/ui/input.tsx';
 import { format, parseISO, startOfWeek, endOfWeek, subDays } from 'date-fns';
@@ -174,6 +175,17 @@ export default function Dashboard({ user }: DashboardProps) {
         </div>
         
         <div className="flex items-center gap-4">
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={() => fetchData()} 
+            disabled={loading}
+            title="Refresh Data"
+            className="h-10 w-10"
+          >
+            <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
+          </Button>
+
           <div className="flex items-center gap-1 bg-zinc-100 p-1 rounded-lg">
             <Button 
               variant={viewMode === 'summary' ? 'default' : 'ghost'} 

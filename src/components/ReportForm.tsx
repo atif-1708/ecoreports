@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label.tsx';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select.tsx';
 import { Calendar } from '@/components/ui/calendar.tsx';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover.tsx';
-import { CalendarIcon, CheckCircle2, Loader2, Download, Upload, FileSpreadsheet, AlertCircle } from 'lucide-react';
+import { CalendarIcon, CheckCircle2, Loader2, Download, Upload, FileSpreadsheet, AlertCircle, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { generateSampleExcel, parseReportExcel } from '@/lib/excel';
@@ -166,9 +166,19 @@ export default function ReportForm({ user }: ReportFormProps) {
 
   return (
     <div className="max-w-5xl mx-auto space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-zinc-900">Weekly Performance Report</h1>
-        <p className="text-zinc-500">Submit your campaign metrics via Excel or manual entry.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-zinc-900">Weekly Performance Report</h1>
+          <p className="text-zinc-500">Submit your campaign metrics via Excel or manual entry.</p>
+        </div>
+        <Button 
+          variant="outline" 
+          size="icon" 
+          onClick={() => window.location.reload()} 
+          title="Refresh Page"
+        >
+          <RefreshCw size={18} />
+        </Button>
       </div>
 
       {success && (
