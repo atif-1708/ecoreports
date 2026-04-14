@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover.tsx';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar.tsx';
 import { getCampaignInsights } from '@/lib/gemini';
 
 interface DashboardProps {
@@ -27,6 +29,10 @@ export default function Dashboard({ user }: DashboardProps) {
   const [stores, setStores] = useState<Store[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedStore, setSelectedStore] = useState<string>('all');
+  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
+    from: undefined,
+    to: undefined
+  });
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'summary' | 'detailed'>('summary');
   const [aiInsights, setAiInsights] = useState<string>('');
@@ -78,7 +84,16 @@ export default function Dashboard({ user }: DashboardProps) {
 
       if (selectedStore !== 'all') {
         reportsQuery = reportsQuery.eq('storeId', selectedStore);
-      } else if (user.role === 'admin') {
+      }
+
+      if (dateRange.from) {
+        reportsQuery = reportsQuery.gte('campaignDate', format(dateRange.from, 'yyyy-MM-dd'));
+      }
+      if (dateRange.to) {
+        reportsQuery = reportsQuery.lte('campaignDate', format(dateRange.to, 'yyyy-MM-dd'));
+      }
+
+      if (user.role === 'admin' && selectedStore === 'all' && !dateRange.from) {
         reportsQuery = reportsQuery.limit(100);
       }
 
@@ -94,7 +109,7 @@ export default function Dashboard({ user }: DashboardProps) {
 
   useEffect(() => {
     fetchData();
-  }, [user, selectedStore]);
+  }, [user, selectedStore, dateRange]);
 
   const filteredReports = useMemo(() => {
     return reports.filter(report => 
@@ -250,6 +265,53 @@ export default function Dashboard({ user }: DashboardProps) {
           </div>
           
           <div className="flex items-center gap-2 bg-white p-1.5 rounded-2xl border border-zinc-200 shadow-sm">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className={cn(
+                    "rounded-xl h-9 px-4 text-xs font-bold uppercase tracking-wider transition-all",
+                    (dateRange.from || dateRange.to) ? "text-brand-600" : "text-zinc-500"
+                  )}
+                >
+                  <Calendar className="mr-2 h-4 w-4" />
+                  {dateRange.from ? (
+                    dateRange.to ? (
+                      <>
+                        {format(dateRange.from, "LLL dd")} - {format(dateRange.to, "LLL dd")}
+                      </>
+                    ) : (
+                      format(dateRange.from, "LLL dd")
+                    )
+                  ) : (
+                    "Filter Date"
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 rounded-3xl border-zinc-200 shadow-2xl" align="end">
+                <div className="p-4 border-b border-zinc-100 flex justify-between items-center">
+                  <span className="text-xs font-black uppercase tracking-widest text-zinc-400">Select Range</span>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-8 text-[10px] font-black uppercase text-rose-500"
+                    onClick={() => setDateRange({ from: undefined, to: undefined })}
+                  >
+                    Clear
+                  </Button>
+                </div>
+                <CalendarComponent
+                  initialFocus
+                  mode="range"
+                  defaultMonth={dateRange.from}
+                  selected={{ from: dateRange.from, to: dateRange.to }}
+                  onSelect={(range: any) => setDateRange({ from: range?.from, to: range?.to })}
+                  numberOfMonths={2}
+                  className="rounded-3xl"
+                />
+              </PopoverContent>
+            </Popover>
+            <div className="w-px h-4 bg-zinc-200 mx-1" />
             <Button 
               variant={viewMode === 'summary' ? 'default' : 'ghost'} 
               size="sm" 
@@ -329,7 +391,7 @@ export default function Dashboard({ user }: DashboardProps) {
                 </div>
                 <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Total Spend</p>
                 <h3 className="text-4xl font-black text-zinc-900 mt-2 data-value tracking-tighter">
-                  ${stats.totalSpend.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  Rs. {stats.totalSpend.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </h3>
               </CardContent>
             </Card>
@@ -346,7 +408,7 @@ export default function Dashboard({ user }: DashboardProps) {
                 </div>
                 <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Total Revenue</p>
                 <h3 className="text-4xl font-black text-zinc-900 mt-2 data-value tracking-tighter">
-                  ${stats.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  Rs. {stats.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </h3>
               </CardContent>
             </Card>
@@ -377,7 +439,7 @@ export default function Dashboard({ user }: DashboardProps) {
                 </div>
                 <p className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em]">Avg. CPA</p>
                 <h3 className="text-4xl font-black text-white mt-2 data-value tracking-tighter">
-                  ${stats.avgCpa.toFixed(2)}
+                  Rs. {stats.avgCpa.toFixed(2)}
                 </h3>
               </CardContent>
             </Card>
@@ -404,7 +466,7 @@ export default function Dashboard({ user }: DashboardProps) {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-black text-zinc-900 data-value">${campaign.revenue.toLocaleString()}</p>
+                        <p className="font-black text-zinc-900 data-value">Rs. {campaign.revenue.toLocaleString()}</p>
                         <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Excellent</p>
                       </div>
                     </div>
@@ -432,7 +494,7 @@ export default function Dashboard({ user }: DashboardProps) {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-black text-zinc-900 data-value">${emp.revenue.toLocaleString()}</p>
+                        <p className="font-black text-zinc-900 data-value">Rs. {emp.revenue.toLocaleString()}</p>
                         <div className="w-24 h-1.5 bg-zinc-200 rounded-full mt-1 overflow-hidden">
                           <div 
                             className="h-full bg-indigo-500 rounded-full" 
@@ -474,7 +536,7 @@ export default function Dashboard({ user }: DashboardProps) {
                           axisLine={false} 
                           tickLine={false} 
                           tick={{ fontSize: 11, fill: '#a1a1aa', fontWeight: 600 }}
-                          tickFormatter={(value) => `$${value}`}
+                          tickFormatter={(value) => `Rs.${value}`}
                         />
                         <Tooltip 
                           cursor={{ fill: '#f8fafc' }}
@@ -563,7 +625,7 @@ export default function Dashboard({ user }: DashboardProps) {
                           <div className="w-4 h-4 rounded-full shadow-sm" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
                           <span className="text-sm font-bold text-zinc-600 group-hover:text-zinc-900 transition-colors">{entry.name}</span>
                         </div>
-                        <span className="font-black text-zinc-900 data-value text-sm">${entry.value.toLocaleString()}</span>
+                        <span className="font-black text-zinc-900 data-value text-sm">Rs. {entry.value.toLocaleString()}</span>
                       </div>
                     ))}
                   </div>
@@ -673,10 +735,10 @@ export default function Dashboard({ user }: DashboardProps) {
                         </Badge>
                       </TableCell>
                       <TableCell className="px-10 py-8 text-right font-bold text-zinc-500 data-value">
-                        ${report.totalSpend.toLocaleString()}
+                        Rs. {report.totalSpend.toLocaleString()}
                       </TableCell>
                       <TableCell className="px-10 py-8 text-right font-black text-zinc-900 text-lg data-value">
-                        ${report.revenue.toLocaleString()}
+                        Rs. {report.revenue.toLocaleString()}
                       </TableCell>
                       <TableCell className="px-10 py-8 text-right">
                         <Badge 

@@ -252,174 +252,60 @@ export default function ReportForm({ user }: ReportFormProps) {
         </Alert>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        <div className="lg:col-span-2">
-          <Card className="border-none shadow-sm bg-white rounded-[40px] overflow-hidden">
-            <CardHeader className="p-10 pb-6">
-              <CardTitle className="text-3xl font-black tracking-tight">Manual Entry</CardTitle>
-              <CardDescription className="text-zinc-500 font-medium">Enter individual campaign metrics for precise tracking.</CardDescription>
-            </CardHeader>
-            <CardContent className="p-10 pt-0">
-              <form onSubmit={handleSubmit} className="space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-3">
-                    <Label htmlFor="store" className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Target Store</Label>
-                    <Select value={formData.storeId} onValueChange={(val) => setFormData(prev => ({ ...prev, storeId: val }))}>
-                      <SelectTrigger className="h-14 rounded-2xl border-zinc-200 bg-zinc-50 focus:ring-brand-500 font-bold">
-                        <SelectValue placeholder="Select a store" />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-2xl border-zinc-200">
-                        {stores.map(store => (
-                          <SelectItem key={store.id} value={store.id} className="font-bold">{store.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-3">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Campaign Date</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full h-14 justify-start text-left font-bold rounded-2xl border-zinc-200 bg-zinc-50",
-                            !formData.campaignDate && "text-zinc-400"
-                          )}
-                        >
-                          <CalendarIcon className="mr-3 h-5 w-5 text-zinc-400" />
-                          {formData.campaignDate ? format(formData.campaignDate, "PPP") : <span>Pick a date</span>}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0 rounded-3xl border-zinc-200 shadow-2xl" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={formData.campaignDate}
-                          onSelect={(date) => date && setFormData(prev => ({ ...prev, campaignDate: date }))}
-                          initialFocus
-                          className="rounded-3xl"
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-
-                  <div className="space-y-3 md:col-span-2">
-                    <Label htmlFor="campaignName" className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Campaign Name</Label>
-                    <Input 
-                      id="campaignName" 
-                      placeholder="e.g. Summer Collection 2024 - Facebook Ads" 
-                      className="h-14 rounded-2xl border-zinc-200 bg-zinc-50 focus:ring-brand-500 font-bold"
-                      value={formData.campaignName}
-                      onChange={(e) => setFormData(prev => ({ ...prev, campaignName: e.target.value }))}
-                      required 
-                    />
-                  </div>
-
-                  <div className="space-y-3">
-                    <Label htmlFor="purchases" className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Total Purchases</Label>
-                    <Input 
-                      id="purchases" 
-                      type="number" 
-                      className="h-14 rounded-2xl border-zinc-200 bg-zinc-50 focus:ring-brand-500 font-bold"
-                      value={formData.purchases}
-                      onChange={(e) => setFormData(prev => ({ ...prev, purchases: Number(e.target.value) }))}
-                      required 
-                    />
-                  </div>
-
-                  <div className="space-y-3">
-                    <Label htmlFor="costPerPurchase" className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Cost Per Purchase ($)</Label>
-                    <Input 
-                      id="costPerPurchase" 
-                      type="number" 
-                      step="0.01"
-                      className="h-14 rounded-2xl border-zinc-200 bg-zinc-50 focus:ring-brand-500 font-bold"
-                      value={formData.costPerPurchase}
-                      onChange={(e) => setFormData(prev => ({ ...prev, costPerPurchase: Number(e.target.value) }))}
-                      required 
-                    />
-                  </div>
-
-                  <div className="space-y-3">
-                    <Label htmlFor="confirmed" className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Confirmed Orders</Label>
-                    <Input 
-                      id="confirmed" 
-                      type="number" 
-                      className="h-14 rounded-2xl border-zinc-200 bg-zinc-50 focus:ring-brand-500 font-bold"
-                      value={formData.confirmed}
-                      onChange={(e) => setFormData(prev => ({ ...prev, confirmed: Number(e.target.value) }))}
-                      required 
-                    />
-                  </div>
-
-                  <div className="space-y-3">
-                    <Label htmlFor="canceled" className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Canceled Orders</Label>
-                    <Input 
-                      id="canceled" 
-                      type="number" 
-                      className="h-14 rounded-2xl border-zinc-200 bg-zinc-50 focus:ring-brand-500 font-bold"
-                      value={formData.canceled}
-                      onChange={(e) => setFormData(prev => ({ ...prev, canceled: Number(e.target.value) }))}
-                      required 
-                    />
-                  </div>
-
-                  <div className="space-y-3">
-                    <Label htmlFor="roas" className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Campaign ROAS (Optional)</Label>
-                    <Input 
-                      id="roas" 
-                      type="number" 
-                      step="0.01"
-                      placeholder="e.g. 3.5"
-                      className="h-14 rounded-2xl border-zinc-200 bg-zinc-50 focus:ring-brand-500 font-bold"
-                      value={formData.roas}
-                      onChange={(e) => setFormData(prev => ({ ...prev, roas: Number(e.target.value) }))}
-                    />
-                    <p className="text-[10px] text-zinc-400 font-medium italic">If provided, revenue will be calculated as ROAS × Spend.</p>
-                  </div>
+      <div className="grid grid-cols-1 gap-10">
+        <Card className="border-none shadow-sm bg-zinc-950 text-white rounded-[40px] overflow-hidden">
+          <CardHeader className="p-10 pb-6">
+            <div className="flex items-center gap-2 text-brand-400 font-black text-[10px] uppercase tracking-[0.3em] mb-4">
+              <Upload size={16} />
+              <span>Bulk Operations</span>
+            </div>
+            <CardTitle className="text-3xl font-black tracking-tighter">Excel Import System</CardTitle>
+            <CardDescription className="text-zinc-400 font-medium">Upload campaign reports via bulk Excel import for automated processing.</CardDescription>
+          </CardHeader>
+          <CardContent className="p-10 pt-0">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+              <div className="space-y-8">
+                <div className="space-y-3">
+                  <Label htmlFor="store" className="text-[10px] font-black uppercase tracking-widest text-zinc-500">1. Select Target Store</Label>
+                  <Select value={formData.storeId} onValueChange={(val) => setFormData(prev => ({ ...prev, storeId: val }))}>
+                    <SelectTrigger className="h-14 rounded-2xl border-white/10 bg-white/5 focus:ring-brand-500 font-bold text-white">
+                      <SelectValue>
+                        {formData.storeId ? stores.find(s => s.id === formData.storeId)?.name : "Choose a store to import data for"}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="rounded-2xl border-zinc-800 bg-zinc-900 text-white">
+                      {stores.map(store => (
+                        <SelectItem key={store.id} value={store.id} className="font-bold hover:bg-zinc-800 focus:bg-zinc-800">{store.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {formData.storeId && (
+                    <p className="text-[10px] text-brand-400 font-bold uppercase tracking-wider">
+                      Store Selected: {stores.find(s => s.id === formData.storeId)?.name}
+                    </p>
+                  )}
                 </div>
 
-                <div className="pt-6">
-                  <Button type="submit" className="w-full h-16 rounded-2xl bg-brand-500 hover:bg-brand-600 text-white text-lg font-black shadow-xl shadow-brand-500/20 transition-all active:scale-[0.98]" disabled={loading}>
-                    {loading ? <Loader2 className="animate-spin mr-3" size={24} /> : null}
-                    Submit Campaign Report
+                <div className="p-8 bg-white/5 rounded-[32px] border border-white/10 text-center space-y-6">
+                  <div className="mx-auto w-16 h-16 bg-brand-500/20 text-brand-400 rounded-2xl flex items-center justify-center">
+                    <FileSpreadsheet size={32} />
+                  </div>
+                  <div className="space-y-2">
+                    <p className="font-bold text-white">2. Download Template</p>
+                    <p className="text-sm text-zinc-500 font-medium">Use our structured Excel file to ensure data compatibility.</p>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    className="w-full h-12 rounded-xl border-white/20 text-white hover:bg-white/10 font-bold"
+                    onClick={generateSampleExcel}
+                  >
+                    <Download className="mr-2" size={18} /> Download Template
                   </Button>
                 </div>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="space-y-10">
-          <Card className="border-none shadow-sm bg-zinc-950 text-white rounded-[40px] overflow-hidden">
-            <CardHeader className="p-10 pb-6">
-              <div className="flex items-center gap-2 text-brand-400 font-black text-[10px] uppercase tracking-[0.3em] mb-4">
-                <Upload size={16} />
-                <span>Bulk Operations</span>
-              </div>
-              <CardTitle className="text-3xl font-black tracking-tighter">Excel Import</CardTitle>
-              <CardDescription className="text-zinc-400 font-medium">Upload multiple reports at once using our template.</CardDescription>
-            </CardHeader>
-            <CardContent className="p-10 pt-0 space-y-8">
-              <div className="p-8 bg-white/5 rounded-[32px] border border-white/10 text-center space-y-6">
-                <div className="mx-auto w-16 h-16 bg-brand-500/20 text-brand-400 rounded-2xl flex items-center justify-center">
-                  <FileSpreadsheet size={32} />
-                </div>
-                <div className="space-y-2">
-                  <p className="font-bold text-white">Need the template?</p>
-                  <p className="text-sm text-zinc-500 font-medium">Download our structured Excel file to ensure data compatibility.</p>
-                </div>
-                <Button 
-                  variant="outline" 
-                  className="w-full h-12 rounded-xl border-white/20 text-white hover:bg-white/10 font-bold"
-                  onClick={generateSampleExcel}
-                >
-                  <Download className="mr-2" size={18} /> Download Template
-                </Button>
               </div>
 
               <div className="space-y-4">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Upload Data File</Label>
+                <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">3. Upload Data File</Label>
                 <div className="relative group">
                   <Input 
                     type="file" 
@@ -432,29 +318,36 @@ export default function ReportForm({ user }: ReportFormProps) {
                   <Label 
                     htmlFor="excel-upload"
                     className={cn(
-                      "flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-[32px] cursor-pointer transition-all",
+                      "flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-[32px] cursor-pointer transition-all",
                       !formData.storeId ? "opacity-50 cursor-not-allowed border-zinc-800" : "border-zinc-800 hover:border-brand-500 hover:bg-brand-500/5"
                     )}
                   >
                     {importing ? (
-                      <Loader2 className="animate-spin text-brand-400" size={32} />
+                      <div className="flex flex-col items-center gap-4">
+                        <Loader2 className="animate-spin text-brand-400" size={48} />
+                        <span className="text-sm font-bold text-brand-400">Processing Data...</span>
+                      </div>
                     ) : (
                       <>
-                        <Upload className="text-zinc-600 group-hover:text-brand-400 transition-colors mb-4" size={32} />
-                        <span className="text-sm font-bold text-zinc-400 group-hover:text-white transition-colors">Click to upload Excel</span>
+                        <div className="p-6 bg-white/5 rounded-full mb-4 group-hover:bg-brand-500/10 transition-colors">
+                          <Upload className="text-zinc-600 group-hover:text-brand-400 transition-colors" size={40} />
+                        </div>
+                        <span className="text-lg font-black text-zinc-400 group-hover:text-white transition-colors">Click to upload Excel</span>
+                        <p className="text-sm text-zinc-600 mt-2">Only .xlsx and .xls files supported</p>
                       </>
                     )}
                   </Label>
                 </div>
                 {!formData.storeId && (
-                  <p className="text-xs text-rose-400 font-bold flex items-center gap-1.5">
-                    <AlertCircle size={14} /> Select a store first
-                  </p>
+                  <div className="flex items-center justify-center gap-2 p-4 bg-rose-500/10 rounded-2xl border border-rose-500/20">
+                    <AlertCircle className="text-rose-400" size={16} />
+                    <p className="text-xs text-rose-400 font-black uppercase tracking-wider">Select a store first to enable upload</p>
+                  </div>
                 )}
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

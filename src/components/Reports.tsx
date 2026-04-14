@@ -157,10 +157,10 @@ export default function Reports({ user }: ReportsProps) {
                       </Badge>
                     </TableCell>
                     <TableCell className="px-10 py-8 text-right font-black text-zinc-900 data-value">
-                      ${report.cpa.toFixed(2)}
+                      Rs. {report.cpa.toFixed(2)}
                     </TableCell>
                     <TableCell className="px-10 py-8 text-right font-black text-zinc-900 text-lg data-value">
-                      ${report.revenue.toLocaleString()}
+                      Rs. {report.revenue.toLocaleString()}
                     </TableCell>
                     <TableCell className="px-10 py-8 text-right">
                       <DropdownMenu>
@@ -241,7 +241,7 @@ export default function Reports({ user }: ReportsProps) {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                   <div className="bg-white p-6 rounded-[32px] shadow-sm space-y-2">
                     <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Revenue</p>
-                    <p className="text-3xl font-black text-zinc-900 data-value">${selectedReport.revenue.toLocaleString()}</p>
+                    <p className="text-3xl font-black text-zinc-900 data-value">Rs. {selectedReport.revenue.toLocaleString()}</p>
                   </div>
                   <div className="bg-white p-6 rounded-[32px] shadow-sm space-y-2 border-l-4 border-brand-500">
                     <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">ROAS</p>
@@ -249,11 +249,11 @@ export default function Reports({ user }: ReportsProps) {
                   </div>
                   <div className="bg-white p-6 rounded-[32px] shadow-sm space-y-2 border-l-4 border-amber-500">
                     <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">CPA</p>
-                    <p className="text-3xl font-black text-zinc-900 data-value">${selectedReport.cpa.toFixed(2)}</p>
+                    <p className="text-3xl font-black text-zinc-900 data-value">Rs. {selectedReport.cpa.toFixed(2)}</p>
                   </div>
                   <div className="bg-white p-6 rounded-[32px] shadow-sm space-y-2">
                     <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Spend</p>
-                    <p className="text-3xl font-black text-zinc-900 data-value">${selectedReport.totalSpend.toLocaleString()}</p>
+                    <p className="text-3xl font-black text-zinc-900 data-value">Rs. {selectedReport.totalSpend.toLocaleString()}</p>
                   </div>
                 </div>
 
