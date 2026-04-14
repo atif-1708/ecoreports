@@ -30,7 +30,7 @@ export default function App() {
   const [isAuthLoading, setIsAuthLoading] = useState(false);
 
   useEffect(() => {
-    const fetchProfile = async (userId: string) => {
+    const fetchProfile = async (userId: string, userEmail?: string, userName?: string) => {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -38,6 +38,30 @@ export default function App() {
         .single();
 
       if (error) {
+        // PGRST116 means "no rows found"
+        if (error.code === 'PGRST116' && userEmail) {
+          console.log('Profile not found for authenticated user, creating one...');
+          const newProfile: UserProfile = {
+            uid: userId,
+            email: userEmail,
+            name: userName || 'User',
+            role: (userEmail === 'atifnazir1708@gmail.com' || userEmail === 'admin@admetric.com') ? 'admin' : 'employee',
+            createdAt: new Date().toISOString(),
+          };
+
+          const { data: createdData, error: insertError } = await supabase
+            .from('profiles')
+            .insert([newProfile])
+            .select()
+            .single();
+
+          if (insertError) {
+            console.error('Error auto-creating profile:', insertError);
+            return null;
+          }
+          return createdData as UserProfile;
+        }
+        
         console.error('Error fetching profile:', error);
         return null;
       }
@@ -48,14 +72,12 @@ export default function App() {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (session?.user) {
-        const profile = await fetchProfile(session.user.id);
-        if (profile) {
-          setUser(profile);
-        } else {
-          // If profile doesn't exist, we might need to create it or handle it
-          // For now, just set user to null or a partial profile
-          setUser(null);
-        }
+        const profile = await fetchProfile(
+          session.user.id, 
+          session.user.email, 
+          session.user.user_metadata?.full_name
+        );
+        setUser(profile);
       }
       setLoading(false);
     };
@@ -63,8 +85,12 @@ export default function App() {
     setupAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
-        const profile = await fetchProfile(session.user.id);
+      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
+        const profile = await fetchProfile(
+          session.user.id, 
+          session.user.email, 
+          session.user.user_metadata?.full_name
+        );
         setUser(profile);
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
