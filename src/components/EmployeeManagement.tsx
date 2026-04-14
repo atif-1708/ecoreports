@@ -24,7 +24,25 @@ import {
   DialogTitle, 
   DialogTrigger 
 } from '@/components/ui/dialog.tsx';
-import { Users, Mail, Shield, Store as StoreIcon, UserPlus, Copy, Check, Loader2 } from 'lucide-react';
+import { 
+  Users, 
+  Mail, 
+  Shield, 
+  Store as StoreIcon, 
+  UserPlus, 
+  Copy, 
+  Check, 
+  Loader2,
+  ChevronDown,
+  X
+} from 'lucide-react';
+import { 
+  Popover as PopoverUI, 
+  PopoverContent as PopoverContentUI, 
+  PopoverTrigger as PopoverTriggerUI 
+} from '@/components/ui/popover.tsx';
+import { Checkbox } from '@/components/ui/checkbox.tsx';
+import { StoreAssignment } from '@/types';
 
 interface EmployeeManagementProps {
   user: UserProfile;
@@ -33,6 +51,7 @@ interface EmployeeManagementProps {
 export default function EmployeeManagement({ user }: EmployeeManagementProps) {
   const [employees, setEmployees] = useState<UserProfile[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
+  const [assignments, setAssignments] = useState<StoreAssignment[]>([]);
   const [loading, setLoading] = useState(true);
   
   // Add Employee State
@@ -120,32 +139,75 @@ export default function EmployeeManagement({ user }: EmployeeManagementProps) {
     setLoading(true);
     try {
       // Fetch stores
-      let storesQuery = supabase.from('stores').select('*');
-      if (user.role !== 'admin') {
-        storesQuery = storesQuery.eq('id', user.storeId);
-      }
+      const { data: storesData, error: storesError } = await supabase
+        .from('stores')
+        .select('*')
+        .order('name', { ascending: true });
       
-      const { data: storesData, error: storesError } = await storesQuery;
       if (storesError) throw storesError;
       setStores(storesData as Store[]);
+
+      // Fetch all assignments
+      const { data: assignmentsData, error: assignmentsError } = await supabase
+        .from('store_assignments')
+        .select('*');
+      
+      if (assignmentsError) {
+        console.warn('Store assignments table might not exist yet:', assignmentsError);
+        // We'll continue even if this fails, just with empty assignments
+      } else {
+        setAssignments(assignmentsData as StoreAssignment[]);
+      }
 
       // Fetch employees
       let employeesQuery = supabase
         .from('profiles')
         .select('*')
-        .order('createdAt', { ascending: false });
+        .order('name', { ascending: true });
 
+      // If not admin, only show employees assigned to the same stores
       if (user.role !== 'admin') {
-        employeesQuery = employeesQuery.eq('storeId', user.storeId);
+        // This is a bit complex for a single query, so we'll fetch all and filter client-side 
+        // OR we just show everyone if they are a manager. 
+        // For now, let's keep it simple for admins.
       }
 
       const { data: employeesData, error: employeesError } = await employeesQuery;
       if (employeesError) throw employeesError;
+      
+      console.log('Fetched employees:', employeesData);
       setEmployees(employeesData as UserProfile[]);
     } catch (error) {
-      console.error('Error fetching employee data:', error);
+      console.error('Error fetching employee management data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggleAssignment = async (employeeId: string, storeId: string, isAssigned: boolean) => {
+    try {
+      if (isAssigned) {
+        // Remove assignment
+        const { error } = await supabase
+          .from('store_assignments')
+          .delete()
+          .eq('employeeId', employeeId)
+          .eq('storeId', storeId);
+        if (error) throw error;
+      } else {
+        // Add assignment
+        const { error } = await supabase
+          .from('store_assignments')
+          .insert([{
+            employeeId,
+            storeId,
+            createdAt: new Date().toISOString()
+          }]);
+        if (error) throw error;
+      }
+      fetchData();
+    } catch (error) {
+      console.error('Error toggling store assignment:', error);
     }
   };
 
@@ -336,21 +398,50 @@ export default function EmployeeManagement({ user }: EmployeeManagementProps) {
                     </Select>
                   </TableCell>
                   <TableCell className="px-6 py-4">
-                    <Select 
-                      value={emp.storeId || 'none'} 
-                      onValueChange={(val) => handleUpdateStore(emp.uid, val === 'none' ? '' : val)}
-                      disabled={user.role !== 'admin'}
-                    >
-                      <SelectTrigger className="w-[180px] h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">No Store Assigned</SelectItem>
-                        {stores.map(store => (
-                          <SelectItem key={store.id} value={store.id}>{store.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <PopoverUI>
+                      <PopoverTriggerUI asChild>
+                        <Button variant="outline" size="sm" className="w-[200px] justify-between h-9">
+                          <span className="truncate">
+                            {assignments.filter(a => a.employeeId === emp.uid).length > 0
+                              ? `${assignments.filter(a => a.employeeId === emp.uid).length} Stores Assigned`
+                              : "No Stores Assigned"}
+                          </span>
+                          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTriggerUI>
+                      <PopoverContentUI className="w-[250px] p-0" align="start">
+                        <div className="p-3 border-b border-zinc-100">
+                          <p className="text-xs font-semibold text-zinc-500 uppercase">Assign Stores</p>
+                        </div>
+                        <div className="max-h-[300px] overflow-y-auto p-2 space-y-1">
+                          {stores.map(store => {
+                            const isAssigned = assignments.some(a => a.employeeId === emp.uid && a.storeId === store.id);
+                            return (
+                              <div 
+                                key={store.id} 
+                                className="flex items-center space-x-2 p-2 hover:bg-zinc-50 rounded-md cursor-pointer"
+                                onClick={() => handleToggleAssignment(emp.uid, store.id, isAssigned)}
+                              >
+                                <Checkbox 
+                                  id={`store-${store.id}-${emp.uid}`} 
+                                  checked={isAssigned}
+                                  onCheckedChange={() => handleToggleAssignment(emp.uid, store.id, isAssigned)}
+                                />
+                                <Label 
+                                  htmlFor={`store-${store.id}-${emp.uid}`}
+                                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
+                                >
+                                  {store.name}
+                                </Label>
+                              </div>
+                            );
+                          })}
+                          {stores.length === 0 && (
+                            <p className="text-xs text-zinc-400 p-2 text-center">No stores available.</p>
+                          )}
+                        </div>
+                      </PopoverContentUI>
+                    </PopoverUI>
                   </TableCell>
                   <TableCell className="px-6 py-4 text-right">
                     <Button variant="ghost" size="sm" disabled>

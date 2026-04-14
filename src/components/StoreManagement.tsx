@@ -53,18 +53,26 @@ export default function StoreManagement({ user }: StoreManagementProps) {
     setIsAdding(true);
 
     try {
-      const { error } = await supabase
+      console.log('Attempting to create store:', newStoreName, 'for owner:', user.uid);
+      const { data, error } = await supabase
         .from('stores')
         .insert([{
           name: newStoreName,
           ownerId: user.uid,
           createdAt: new Date().toISOString(),
-        }]);
+        }])
+        .select();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error creating store:', error);
+        alert(`Failed to create store: ${error.message}`);
+        throw error;
+      }
+      
+      console.log('Store created successfully:', data);
       setNewStoreName('');
       fetchStores();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding store:', error);
     } finally {
       setIsAdding(false);

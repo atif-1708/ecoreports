@@ -64,15 +64,33 @@ export default function Dashboard({ user }: DashboardProps) {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Fetch stores for filter
-      let storesQuery = supabase.from('stores').select('*');
-      if (user.role !== 'admin') {
-        storesQuery = storesQuery.eq('id', user.storeId);
+      // Fetch all stores
+      const { data: allStores, error: storesError } = await supabase
+        .from('stores')
+        .select('*')
+        .order('name', { ascending: true });
+      
+      if (storesError) throw storesError;
+
+      let filteredStores: Store[] = [];
+      let assignedStoreIds: string[] = [];
+
+      if (user.role === 'admin') {
+        filteredStores = allStores as Store[];
+      } else {
+        // Fetch assignments for this user
+        const { data: userAssignments, error: assignError } = await supabase
+          .from('store_assignments')
+          .select('storeId')
+          .eq('employeeId', user.uid);
+        
+        if (assignError) throw assignError;
+        
+        assignedStoreIds = userAssignments.map(a => a.storeId);
+        filteredStores = (allStores as Store[]).filter(s => assignedStoreIds.includes(s.id));
       }
       
-      const { data: storesData, error: storesError } = await storesQuery;
-      if (storesError) throw storesError;
-      setStores(storesData as Store[]);
+      setStores(filteredStores);
 
       // Fetch reports
       let reportsQuery = supabase
@@ -87,7 +105,15 @@ export default function Dashboard({ user }: DashboardProps) {
           reportsQuery = reportsQuery.limit(100);
         }
       } else {
-        reportsQuery = reportsQuery.eq('storeId', user.storeId);
+        // Only show reports for assigned stores
+        if (assignedStoreIds.length > 0) {
+          reportsQuery = reportsQuery.in('storeId', assignedStoreIds);
+        } else {
+          // No stores assigned, return empty
+          setReports([]);
+          setLoading(false);
+          return;
+        }
       }
 
       const { data: reportsData, error: reportsError } = await reportsQuery;

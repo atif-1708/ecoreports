@@ -38,20 +38,39 @@ export default function ReportForm({ user }: ReportFormProps) {
 
   useEffect(() => {
     const fetchStores = async () => {
-      let storesQuery = supabase.from('stores').select('*');
-      if (user.role !== 'admin') {
-        storesQuery = storesQuery.eq('id', user.storeId);
-      }
-      
-      const { data: storesData, error } = await storesQuery;
-      if (error) {
-        console.error('Error fetching stores:', error);
-        return;
-      }
-      
-      setStores(storesData as Store[]);
-      if (!formData.storeId && storesData.length > 0) {
-        setFormData(prev => ({ ...prev, storeId: storesData[0].id }));
+      try {
+        // Fetch all stores
+        const { data: allStores, error: storesError } = await supabase
+          .from('stores')
+          .select('*')
+          .order('name', { ascending: true });
+        
+        if (storesError) throw storesError;
+
+        if (user.role === 'admin') {
+          setStores(allStores as Store[]);
+          if (allStores.length > 0 && !formData.storeId) {
+            setFormData(prev => ({ ...prev, storeId: allStores[0].id }));
+          }
+        } else {
+          // Fetch assignments for this user
+          const { data: userAssignments, error: assignError } = await supabase
+            .from('store_assignments')
+            .select('storeId')
+            .eq('employeeId', user.uid);
+          
+          if (assignError) throw assignError;
+          
+          const assignedStoreIds = userAssignments.map(a => a.storeId);
+          const filteredStores = (allStores as Store[]).filter(s => assignedStoreIds.includes(s.id));
+          
+          setStores(filteredStores);
+          if (filteredStores.length > 0 && !formData.storeId) {
+            setFormData(prev => ({ ...prev, storeId: filteredStores[0].id }));
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching stores for report:', err);
       }
     };
     fetchStores();

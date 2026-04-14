@@ -77,7 +77,24 @@ export default function App() {
           session.user.email, 
           session.user.user_metadata?.full_name
         );
-        setUser(profile);
+        
+        // Force admin role for the primary admin email if it's not set
+        if (profile && (session.user.email === 'atifnazir1708@gmail.com' || session.user.email === 'admin@admetric.com') && profile.role !== 'admin') {
+          const { data: updatedProfile } = await supabase
+            .from('profiles')
+            .update({ role: 'admin' })
+            .eq('uid', session.user.id)
+            .select()
+            .single();
+          
+          if (updatedProfile) {
+            setUser(updatedProfile as UserProfile);
+          } else {
+            setUser(profile);
+          }
+        } else {
+          setUser(profile);
+        }
       }
       setLoading(false);
     };
@@ -247,6 +264,7 @@ export default function App() {
                   <ul className="text-xs text-zinc-500 mt-2 list-disc list-inside space-y-1">
                     <li>profiles (uid, email, name, role, storeId, createdAt)</li>
                     <li>stores (id, name, ownerId, createdAt)</li>
+                    <li>store_assignments (id, employeeId, storeId, createdAt)</li>
                     <li>reports (id, storeId, employeeId, employeeName, ...)</li>
                   </ul>
                 </div>
