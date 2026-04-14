@@ -1,6 +1,6 @@
 import React from 'react';
 import { UserProfile } from '../types';
-import { Button } from './ui/button';
+import { Button } from '@/components/ui/button';
 import { 
   LayoutDashboard, 
   Store, 
