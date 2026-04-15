@@ -24,6 +24,15 @@ interface DashboardProps {
   user: UserProfile;
 }
 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table.tsx";
+
 export default function Dashboard({ user }: DashboardProps) {
   const [reports, setReports] = useState<CampaignReport[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
@@ -145,7 +154,7 @@ export default function Dashboard({ user }: DashboardProps) {
 
   const topCampaigns = useMemo(() => {
     return [...filteredReports]
-      .sort((a, b) => b.revenue - a.revenue)
+      .sort((a, b) => b.roas - a.roas)
       .slice(0, 5);
   }, [filteredReports]);
 
@@ -170,17 +179,19 @@ export default function Dashboard({ user }: DashboardProps) {
 
   const cpaDistribution = useMemo(() => {
     const ranges: Record<string, number> = {
-      '<Rs.10': 0,
-      'Rs.10-20': 0,
-      'Rs.20-50': 0,
-      'Rs.50+': 0
+      '<Rs.150': 0,
+      'Rs.150-250': 0,
+      'Rs.250-350': 0,
+      'Rs.350-500': 0,
+      'Rs.500+': 0
     };
 
     filteredReports.forEach(r => {
-      if (r.cpa < 10) ranges['<Rs.10']++;
-      else if (r.cpa < 20) ranges['Rs.10-20']++;
-      else if (r.cpa < 50) ranges['Rs.20-50']++;
-      else ranges['Rs.50+']++;
+      if (r.cpa < 150) ranges['<Rs.150']++;
+      else if (r.cpa < 250) ranges['Rs.150-250']++;
+      else if (r.cpa < 350) ranges['Rs.250-350']++;
+      else if (r.cpa < 500) ranges['Rs.350-500']++;
+      else ranges['Rs.500+']++;
     });
 
     return Object.entries(ranges).map(([name, value]) => ({ name, value }));
@@ -450,7 +461,7 @@ export default function Dashboard({ user }: DashboardProps) {
             <Card className="border-none shadow-sm bg-white rounded-[40px] p-4">
               <CardHeader className="px-6 pt-6">
                 <CardTitle className="text-2xl font-black tracking-tight">Top Performing Campaigns</CardTitle>
-                <CardDescription className="text-zinc-500 font-medium">Ranked by revenue generation.</CardDescription>
+                <CardDescription className="text-zinc-500 font-medium">Ranked by ROAS performance.</CardDescription>
               </CardHeader>
               <CardContent className="px-6 pb-6">
                 <div className="space-y-4 mt-4">
@@ -462,12 +473,12 @@ export default function Dashboard({ user }: DashboardProps) {
                         </div>
                         <div>
                           <p className="font-black text-zinc-900">{campaign.campaignName}</p>
-                          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">ROAS: {campaign.roas.toFixed(2)}x</p>
+                          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Product: {campaign.productName || 'General'}</p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-black text-zinc-900 data-value">Rs. {campaign.revenue.toLocaleString()}</p>
-                        <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Excellent</p>
+                        <p className="font-black text-brand-600 text-lg">{campaign.roas.toFixed(2)}x ROAS</p>
+                        <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">CPA: Rs. {campaign.cpa.toFixed(2)}</p>
                       </div>
                     </div>
                   ))}

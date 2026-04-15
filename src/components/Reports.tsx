@@ -29,7 +29,10 @@ import {
   Search,
   ChevronRight,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  Loader2,
+  CheckCircle2,
+  Sparkles
 } from 'lucide-react';
 import { format, parseISO, isValid } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -136,7 +139,7 @@ export default function Reports({ user }: ReportsProps) {
 
   const topCampaigns = useMemo(() => {
     return [...filteredReports]
-      .sort((a, b) => (b.revenue || 0) - (a.revenue || 0))
+      .sort((a, b) => (b.roas || 0) - (a.roas || 0))
       .slice(0, 5);
   }, [filteredReports]);
 
@@ -259,8 +262,8 @@ export default function Reports({ user }: ReportsProps) {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-black text-brand-600">Rs. {c.revenue.toLocaleString()}</p>
-                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{c.roas.toFixed(2)}x ROAS</p>
+                    <p className="font-black text-brand-600">{c.roas.toFixed(2)}x ROAS</p>
+                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">CPA: Rs. {c.cpa.toFixed(2)}</p>
                   </div>
                 </div>
               ))}
@@ -351,21 +354,23 @@ export default function Reports({ user }: ReportsProps) {
             <Table>
               <TableHeader className="bg-zinc-50/50">
                 <TableRow className="hover:bg-transparent border-zinc-100">
-                  <TableHead className="px-10 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Campaign & Product</TableHead>
-                  <TableHead className="px-10 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Store</TableHead>
-                  <TableHead className="px-10 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Employee</TableHead>
-                  <TableHead className="px-10 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 text-right">ROAS</TableHead>
-                  <TableHead className="px-10 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 text-right">CPA</TableHead>
-                  <TableHead className="px-10 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 text-right">Revenue</TableHead>
-                  <TableHead className="px-10 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 text-right"></TableHead>
+                  <TableHead className="px-6 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Campaign & Product</TableHead>
+                  <TableHead className="px-6 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Store</TableHead>
+                  <TableHead className="px-6 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 text-right">Purchases</TableHead>
+                  <TableHead className="px-6 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 text-right">Confirmed</TableHead>
+                  <TableHead className="px-6 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 text-right">Spend</TableHead>
+                  <TableHead className="px-6 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 text-right">ROAS</TableHead>
+                  <TableHead className="px-6 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 text-right">CPA</TableHead>
+                  <TableHead className="px-6 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 text-right">Revenue</TableHead>
+                  <TableHead className="px-6 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 text-right"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredReports.map((report) => (
                   <TableRow key={report.id} className="hover:bg-zinc-50/50 transition-colors border-zinc-100 group">
-                    <TableCell className="px-10 py-8">
+                    <TableCell className="px-6 py-6">
                       <div className="space-y-1">
-                        <p className="font-black text-zinc-900 text-lg tracking-tight group-hover:text-brand-600 transition-colors">{report.campaignName}</p>
+                        <p className="font-black text-zinc-900 text-base tracking-tight group-hover:text-brand-600 transition-colors">{report.campaignName}</p>
                         <div className="flex items-center gap-2">
                           <Badge variant="secondary" className="text-[9px] font-black uppercase tracking-widest bg-zinc-100 text-zinc-500 rounded-md px-1.5">
                             {report.productName || 'General'}
@@ -374,20 +379,25 @@ export default function Reports({ user }: ReportsProps) {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="px-10 py-8">
-                      <Badge variant="outline" className="rounded-xl border-zinc-200 bg-zinc-50 text-zinc-600 font-bold px-3 py-1">
-                        {stores.find(s => s.id === report.storeId)?.name || 'Unknown'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="px-10 py-8">
-                      <div className="flex items-center gap-2">
-                        <div className="h-8 w-8 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-500">
-                          <User size={14} />
-                        </div>
-                        <span className="text-sm font-bold text-zinc-600">{report.employeeName || 'System'}</span>
+                    <TableCell className="px-6 py-6">
+                      <div className="space-y-1">
+                        <p className="text-sm font-bold text-zinc-900">{stores.find(s => s.id === report.storeId)?.name || 'Unknown'}</p>
+                        <p className="text-[10px] font-medium text-zinc-400 uppercase tracking-widest">{report.employeeName || 'System'}</p>
                       </div>
                     </TableCell>
-                    <TableCell className="px-10 py-8 text-right">
+                    <TableCell className="px-6 py-6 text-right font-bold text-zinc-600">
+                      {report.purchases}
+                    </TableCell>
+                    <TableCell className="px-6 py-6 text-right">
+                      <div className="space-y-1">
+                        <p className="font-bold text-emerald-600">{report.confirmed}</p>
+                        <p className="text-[10px] font-medium text-zinc-400">{report.confirmationRate.toFixed(1)}%</p>
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-6 py-6 text-right font-bold text-zinc-600">
+                      Rs. {report.totalSpend.toLocaleString()}
+                    </TableCell>
+                    <TableCell className="px-6 py-6 text-right">
                       <Badge 
                         className={cn(
                           "rounded-xl font-black px-3 py-1",
@@ -398,13 +408,13 @@ export default function Reports({ user }: ReportsProps) {
                         {report.roas.toFixed(2)}x
                       </Badge>
                     </TableCell>
-                    <TableCell className="px-10 py-8 text-right font-black text-zinc-900 data-value">
+                    <TableCell className="px-6 py-6 text-right font-black text-zinc-900">
                       Rs. {report.cpa.toFixed(2)}
                     </TableCell>
-                    <TableCell className="px-10 py-8 text-right font-black text-zinc-900 text-lg data-value">
+                    <TableCell className="px-6 py-6 text-right font-black text-zinc-900 text-lg">
                       Rs. {report.revenue.toLocaleString()}
                     </TableCell>
-                    <TableCell className="px-10 py-8 text-right">
+                    <TableCell className="px-6 py-6 text-right">
                       <Button 
                         variant="ghost" 
                         size="icon" 
