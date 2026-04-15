@@ -32,6 +32,7 @@ export interface CampaignReport {
   employeeName: string;
   campaignDate: string;
   campaignName: string;
+  productName?: string;
   purchases: number;
   costPerPurchase: number;
   confirmed: number;

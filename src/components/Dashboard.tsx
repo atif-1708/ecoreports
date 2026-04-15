@@ -170,17 +170,17 @@ export default function Dashboard({ user }: DashboardProps) {
 
   const cpaDistribution = useMemo(() => {
     const ranges: Record<string, number> = {
-      '<$10': 0,
-      '$10-$20': 0,
-      '$20-$50': 0,
-      '$50+': 0
+      '<Rs.10': 0,
+      'Rs.10-20': 0,
+      'Rs.20-50': 0,
+      'Rs.50+': 0
     };
 
     filteredReports.forEach(r => {
-      if (r.cpa < 10) ranges['<$10']++;
-      else if (r.cpa < 20) ranges['$10-$20']++;
-      else if (r.cpa < 50) ranges['$20-$50']++;
-      else ranges['$50+']++;
+      if (r.cpa < 10) ranges['<Rs.10']++;
+      else if (r.cpa < 20) ranges['Rs.10-20']++;
+      else if (r.cpa < 50) ranges['Rs.20-50']++;
+      else ranges['Rs.50+']++;
     });
 
     return Object.entries(ranges).map(([name, value]) => ({ name, value }));
@@ -777,13 +777,3 @@ export default function Dashboard({ user }: DashboardProps) {
     </div>
   );
 }
-
-// Missing imports for Table components
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table.tsx";

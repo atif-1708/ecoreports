@@ -23,10 +23,24 @@ import {
   Store as StoreIcon,
   Target,
   DollarSign,
-  BarChart3
+  BarChart3,
+  Package,
+  Filter,
+  Search,
+  ChevronRight,
+  ArrowUpRight,
+  ArrowDownRight
 } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isValid } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select.tsx';
+import { Input } from '@/components/ui/input.tsx';
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -51,6 +65,12 @@ export default function Reports({ user }: ReportsProps) {
   const [loading, setLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState<CampaignReport | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+  // Filters
+  const [filterStore, setFilterStore] = useState<string>('all');
+  const [filterEmployee, setFilterEmployee] = useState<string>('all');
+  const [filterProduct, setFilterProduct] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchData = async () => {
     setLoading(true);
@@ -80,10 +100,80 @@ export default function Reports({ user }: ReportsProps) {
     fetchData();
   }, [user]);
 
+  const filteredReports = useMemo(() => {
+    return reports.filter(report => {
+      const matchesStore = filterStore === 'all' || report.storeId === filterStore;
+      const matchesEmployee = filterEmployee === 'all' || report.employeeId === filterEmployee;
+      const matchesProduct = filterProduct === 'all' || report.productName === filterProduct;
+      const matchesSearch = report.campaignName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            (report.productName?.toLowerCase().includes(searchQuery.toLowerCase()));
+      
+      return matchesStore && matchesEmployee && matchesProduct && matchesSearch;
+    });
+  }, [reports, filterStore, filterEmployee, filterProduct, searchQuery]);
+
+  const employees = useMemo(() => {
+    const unique = new Set(reports.map(r => r.employeeId).filter(Boolean));
+    return Array.from(unique).map(id => {
+      const report = reports.find(r => r.employeeId === id);
+      return { id, name: report?.employeeName || 'Unknown' };
+    });
+  }, [reports]);
+
+  const products = useMemo(() => {
+    const unique = new Set(reports.map(r => r.productName).filter(Boolean));
+    return Array.from(unique).sort();
+  }, [reports]);
+
+  const stats = useMemo(() => {
+    const totalRevenue = filteredReports.reduce((sum, r) => sum + (r.revenue || 0), 0);
+    const totalSpend = filteredReports.reduce((sum, r) => sum + (r.totalSpend || 0), 0);
+    const totalConfirmed = filteredReports.reduce((sum, r) => sum + (r.confirmed || 0), 0);
+    const avgRoas = totalSpend > 0 ? totalRevenue / totalSpend : 0;
+    
+    return { totalRevenue, totalSpend, totalConfirmed, avgRoas };
+  }, [filteredReports]);
+
+  const topCampaigns = useMemo(() => {
+    return [...filteredReports]
+      .sort((a, b) => (b.revenue || 0) - (a.revenue || 0))
+      .slice(0, 5);
+  }, [filteredReports]);
+
+  const topProducts = useMemo(() => {
+    const productStats: Record<string, number> = {};
+    filteredReports.forEach(r => {
+      const p = r.productName || 'General';
+      productStats[p] = (productStats[p] || 0) + (r.revenue || 0);
+    });
+    return Object.entries(productStats)
+      .map(([name, revenue]) => ({ name, revenue }))
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5);
+  }, [filteredReports]);
+
   const handleViewDetails = (report: CampaignReport) => {
     setSelectedReport(report);
     setIsDetailOpen(true);
   };
+
+  const formatDateSafely = (dateStr: string) => {
+    try {
+      const date = parseISO(dateStr);
+      return isValid(date) ? format(date, 'MMM d, yyyy') : 'Invalid Date';
+    } catch {
+      return 'Invalid Date';
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col h-96 items-center justify-center space-y-4">
+        <Loader2 className="h-12 w-12 animate-spin text-brand-500" />
+        <p className="text-zinc-500 font-bold animate-pulse">Loading Audit Data...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-10 pb-12">
@@ -93,20 +183,167 @@ export default function Reports({ user }: ReportsProps) {
             <FileText size={14} />
             <span>Audit & Analysis</span>
           </div>
-          <h1 className="text-5xl font-black tracking-tighter text-zinc-900">Campaign Reports</h1>
+          <h1 className="text-5xl font-black tracking-tighter text-zinc-900">Reporting Center</h1>
           <p className="text-zinc-500 max-w-2xl text-lg font-medium">
-            {user.role === 'admin' ? 'Complete agency report history and granular campaign analysis.' : 'Your submitted reports and performance history.'}
+            Analyze campaign performance, product trends, and employee contributions in one place.
           </p>
         </div>
       </div>
 
+      {/* Summary Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="border-none shadow-sm bg-white rounded-[32px] p-6">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-brand-50 text-brand-600 rounded-2xl">
+              <DollarSign size={24} />
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Total Revenue</p>
+              <p className="text-2xl font-black text-zinc-900">Rs. {stats.totalRevenue.toLocaleString()}</p>
+            </div>
+          </div>
+        </Card>
+        <Card className="border-none shadow-sm bg-white rounded-[32px] p-6">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl">
+              <TrendingUp size={24} />
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Avg. ROAS</p>
+              <p className="text-2xl font-black text-zinc-900">{stats.avgRoas.toFixed(2)}x</p>
+            </div>
+          </div>
+        </Card>
+        <Card className="border-none shadow-sm bg-white rounded-[32px] p-6">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl">
+              <Target size={24} />
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Total Spend</p>
+              <p className="text-2xl font-black text-zinc-900">Rs. {stats.totalSpend.toLocaleString()}</p>
+            </div>
+          </div>
+        </Card>
+        <Card className="border-none shadow-sm bg-white rounded-[32px] p-6">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl">
+              <CheckCircle2 size={24} />
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Confirmed Orders</p>
+              <p className="text-2xl font-black text-zinc-900">{stats.totalConfirmed}</p>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Top Performers Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+        <Card className="border-none shadow-sm bg-white rounded-[40px] overflow-hidden">
+          <CardHeader className="p-8 pb-4">
+            <CardTitle className="text-xl font-black tracking-tight flex items-center gap-2">
+              <Sparkles className="text-brand-500" size={20} />
+              Top Campaigns
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-8 pt-0">
+            <div className="space-y-4">
+              {topCampaigns.map((c, i) => (
+                <div key={c.id} className="flex items-center justify-between p-4 bg-zinc-50 rounded-2xl hover:bg-brand-50 transition-all group">
+                  <div className="flex items-center gap-4">
+                    <span className="text-xs font-black text-zinc-300 group-hover:text-brand-400">0{i+1}</span>
+                    <div>
+                      <p className="font-black text-zinc-900">{c.campaignName}</p>
+                      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{c.productName || 'General'}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-black text-brand-600">Rs. {c.revenue.toLocaleString()}</p>
+                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{c.roas.toFixed(2)}x ROAS</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-none shadow-sm bg-white rounded-[40px] overflow-hidden">
+          <CardHeader className="p-8 pb-4">
+            <CardTitle className="text-xl font-black tracking-tight flex items-center gap-2">
+              <Package className="text-indigo-500" size={20} />
+              Top Products
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-8 pt-0">
+            <div className="space-y-4">
+              {topProducts.map((p, i) => (
+                <div key={p.name} className="flex items-center justify-between p-4 bg-zinc-50 rounded-2xl hover:bg-indigo-50 transition-all group">
+                  <div className="flex items-center gap-4">
+                    <span className="text-xs font-black text-zinc-300 group-hover:text-indigo-400">0{i+1}</span>
+                    <p className="font-black text-zinc-900">{p.name}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-black text-indigo-600">Rs. {p.revenue.toLocaleString()}</p>
+                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Total Revenue</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters & Table */}
       <Card className="border-none shadow-sm bg-white rounded-[40px] overflow-hidden">
         <CardHeader className="p-10 pb-6 border-b border-zinc-100">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-3xl font-black tracking-tight">Report History</CardTitle>
-            <Badge variant="outline" className="rounded-xl border-zinc-200 bg-zinc-50 text-zinc-600 font-bold px-4 py-1.5">
-              {reports.length} Total Reports
-            </Badge>
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <div className="space-y-1">
+              <CardTitle className="text-3xl font-black tracking-tight">Report History</CardTitle>
+              <CardDescription className="text-zinc-500 font-medium">Filter and analyze granular campaign data.</CardDescription>
+            </div>
+            
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={16} />
+                <Input 
+                  placeholder="Search campaigns..." 
+                  className="pl-10 w-[200px] h-10 rounded-xl border-zinc-200 bg-zinc-50"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+
+              <Select value={filterStore} onValueChange={setFilterStore}>
+                <SelectTrigger className="w-[160px] h-10 rounded-xl border-zinc-200 bg-zinc-50 font-bold">
+                  <SelectValue placeholder="Store" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="all">All Stores</SelectItem>
+                  {stores.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+
+              <Select value={filterEmployee} onValueChange={setFilterEmployee}>
+                <SelectTrigger className="w-[160px] h-10 rounded-xl border-zinc-200 bg-zinc-50 font-bold">
+                  <SelectValue placeholder="Employee" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="all">All Employees</SelectItem>
+                  {employees.map(e => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+
+              <Select value={filterProduct} onValueChange={setFilterProduct}>
+                <SelectTrigger className="w-[160px] h-10 rounded-xl border-zinc-200 bg-zinc-50 font-bold">
+                  <SelectValue placeholder="Product" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="all">All Products</SelectItem>
+                  {products.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -114,7 +351,7 @@ export default function Reports({ user }: ReportsProps) {
             <Table>
               <TableHeader className="bg-zinc-50/50">
                 <TableRow className="hover:bg-transparent border-zinc-100">
-                  <TableHead className="px-10 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Campaign</TableHead>
+                  <TableHead className="px-10 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Campaign & Product</TableHead>
                   <TableHead className="px-10 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Store</TableHead>
                   <TableHead className="px-10 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Employee</TableHead>
                   <TableHead className="px-10 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 text-right">ROAS</TableHead>
@@ -124,12 +361,17 @@ export default function Reports({ user }: ReportsProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {reports.map((report) => (
+                {filteredReports.map((report) => (
                   <TableRow key={report.id} className="hover:bg-zinc-50/50 transition-colors border-zinc-100 group">
                     <TableCell className="px-10 py-8">
                       <div className="space-y-1">
                         <p className="font-black text-zinc-900 text-lg tracking-tight group-hover:text-brand-600 transition-colors">{report.campaignName}</p>
-                        <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{format(parseISO(report.campaignDate), 'MMM d, yyyy')}</p>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="text-[9px] font-black uppercase tracking-widest bg-zinc-100 text-zinc-500 rounded-md px-1.5">
+                            {report.productName || 'General'}
+                          </Badge>
+                          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{formatDateSafely(report.campaignDate)}</span>
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell className="px-10 py-8">
@@ -163,25 +405,18 @@ export default function Reports({ user }: ReportsProps) {
                       Rs. {report.revenue.toLocaleString()}
                     </TableCell>
                     <TableCell className="px-10 py-8 text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="rounded-xl hover:bg-zinc-100">
-                            <MoreHorizontal size={18} />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="rounded-2xl border-zinc-200 shadow-xl p-2">
-                          <DropdownMenuItem onClick={() => handleViewDetails(report)} className="rounded-xl font-bold gap-2 cursor-pointer">
-                            <Eye size={16} /> View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="rounded-xl font-bold gap-2 cursor-pointer text-brand-600">
-                            <Download size={16} /> Export PDF
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="rounded-xl hover:bg-zinc-100"
+                        onClick={() => handleViewDetails(report)}
+                      >
+                        <ChevronRight size={18} />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
-                {reports.length === 0 && !loading && (
+                {filteredReports.length === 0 && !loading && (
                   <TableRow>
                     <TableCell colSpan={7} className="h-96 text-center">
                       <div className="flex flex-col items-center justify-center space-y-4">
@@ -190,7 +425,7 @@ export default function Reports({ user }: ReportsProps) {
                         </div>
                         <div className="space-y-1">
                           <p className="text-xl font-black text-zinc-900">No reports found</p>
-                          <p className="text-zinc-500 font-medium">Start by submitting your first campaign report.</p>
+                          <p className="text-zinc-500 font-medium">Try adjusting your filters or search query.</p>
                         </div>
                       </div>
                     </TableCell>
